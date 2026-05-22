@@ -500,7 +500,7 @@ export default function PayboocLuckyCharmMobileWeb() {
                   <input type="file" accept="image/*" onChange={(event) => setStoryCaptureName(event.target.files?.[0]?.name || "")} className="mt-2 w-full rounded-2xl bg-white p-3 text-xs font-bold" />
                   {storyCaptureName && <p className="mt-2 text-xs font-bold text-[#E6002D]">업로드 파일: {storyCaptureName}</p>}
                   <label className="mt-4 block text-xs font-black text-neutral-500">인스타그램 아이디</label>
-                  <input value={entryForm.instagramId} onChange={(event) => setEntryForm((prev) => ({ ...prev, instagramId: event.target.value }))} placeholder="예: bamos4study" className="mt-2 w-full rounded-2xl bg-white px-4 py-3 text-sm font-bold outline-none" />
+                  <input value={entryForm.instagramId} onChange={(event) => setEntryForm((prev) => ({ ...prev, instagramId: event.target.value }))} placeholder="예: bccard_official" className="mt-2 w-full rounded-2xl bg-white px-4 py-3 text-sm font-bold outline-none" />
                   <label className="mt-4 block text-xs font-black text-neutral-500">이름</label>
                   <input value={entryForm.name} onChange={(event) => setEntryForm((prev) => ({ ...prev, name: event.target.value }))} placeholder="이름 입력" className="mt-2 w-full rounded-2xl bg-white px-4 py-3 text-sm font-bold outline-none" />
                   <label className="mt-4 block text-xs font-black text-neutral-500">전화번호</label>
