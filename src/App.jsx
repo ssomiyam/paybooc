@@ -80,7 +80,7 @@ const stickerOptions = [
   { id: "s30", text: "행운 충전", type: "pill" },
 ];
 
-const CHARACTER_SIZE_LIMITS = { minScale: 0.8, maxScale: 1.35, minOffsetY: -24, maxOffsetY: 48 };
+const CHARACTER_SIZE_LIMITS = { minScale: 0.8, maxScale: 1.45, minOffsetX: -90, maxOffsetX: 90, minOffsetY: -60, maxOffsetY: 80 };
 const screens = ["home", "select", "custom", "share"];
 const OFFICIAL_TAG = "@bccard_official";
 const INSTAGRAM_URL = "https://www.instagram.com/bccard_official?igsh=bHpwendvOW85Mm1i";
@@ -105,6 +105,10 @@ function getRandomScore() {
 
 function getRandomItem(items) {
   return items[Math.floor(Math.random() * items.length)];
+}
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
 }
 
 function createRandomFortunes() {
@@ -152,34 +156,218 @@ function sanitizeUnsupportedColors(root) {
 }
 
 function Sticker({ sticker, small = false }) {
-  const base = small ? "text-[10px] px-2 py-1" : "text-xs px-3 py-2";
-  if (sticker.type === "emoji") return <div className={small ? "text-2xl" : "text-3xl"}>{sticker.text}</div>;
-  if (sticker.type === "burst") return <div className={`${base} rotate-[-5deg] border-2 border-red-400 bg-yellow-100 font-black text-red-500`}>{sticker.text}</div>;
-  if (sticker.type === "heart") return <div className={`${base} rounded-[48%] border-2 border-black bg-pink-100 text-center font-semibold text-neutral-800`}>{sticker.text}</div>;
-  if (sticker.type === "pill") return <div className={`${base} rounded-full border-2 border-red-400 bg-yellow-50 text-center font-black text-red-500`}>🙏 {sticker.text}</div>;
-  if (sticker.type === "cloud") return <div className={`${base} rounded-[2rem] border-2 border-black bg-cyan-50 text-center font-semibold text-neutral-800`}>{sticker.text}</div>;
-  if (sticker.type === "speech") return <div className={`${base} rounded-full border-2 border-black bg-white text-center font-semibold text-neutral-800`}>{sticker.text}</div>;
-  if (sticker.type === "zigzag") return <div className={`${base} border-2 border-black bg-white text-center font-black text-neutral-900`}>{sticker.text}</div>;
-  if (sticker.type === "vertical") return <div className="rounded-sm border-2 border-black bg-green-50 px-2 py-2 text-center text-[10px] font-bold leading-tight text-neutral-900 [writing-mode:vertical-rl]">{sticker.text}</div>;
-  return <div className={`${base} border-2 border-green-500 bg-white text-center font-semibold text-green-600`}>{sticker.text}</div>;
-}
+  const baseStyle = {
+    fontSize: small ? "10px" : "12px",
+    padding: small ? "4px 8px" : "8px 12px",
+    lineHeight: "1.2",
+    boxSizing: "border-box",
+    whiteSpace: "nowrap",
+  };
 
-function CharacterImage({ character, characterScale = 1, characterOffsetY = 20 }) {
-  const [hasError, setHasError] = useState(false);
-  const transformStyle = { transform: `translateY(${characterOffsetY}px) scale(${characterScale})` };
+  if (sticker.type === "emoji") {
+    return <div style={{ fontSize: small ? "24px" : "30px", lineHeight: 1 }}>{sticker.text}</div>;
+  }
 
-  if (hasError) {
+  if (sticker.type === "burst") {
     return (
-      <div className="mx-auto flex h-40 w-40 items-center justify-center rounded-full text-6xl shadow-sm" style={{ ...transformStyle, backgroundColor: "rgba(255,255,255,0.6)" }}>
-        {character.fallback}
+      <div
+        style={{
+          ...baseStyle,
+          transform: "rotate(-5deg)",
+          border: "2px solid #F87171",
+          backgroundColor: "#FEF3C7",
+          color: "#EF4444",
+          fontWeight: 900,
+        }}
+      >
+        {sticker.text}
       </div>
     );
   }
 
-  return <img src={character.image} alt={`${character.name} 캐릭터`} onError={() => setHasError(true)} className="mx-auto h-44 w-44 object-contain drop-shadow-md" style={transformStyle} />;
+  if (sticker.type === "heart") {
+    return (
+      <div
+        style={{
+          ...baseStyle,
+          borderRadius: "48%",
+          border: "2px solid #111111",
+          backgroundColor: "#FCE7F3",
+          color: "#262626",
+          textAlign: "center",
+          fontWeight: 700,
+        }}
+      >
+        {sticker.text}
+      </div>
+    );
+  }
+
+  if (sticker.type === "pill") {
+    return (
+      <div
+        style={{
+          ...baseStyle,
+          borderRadius: "999px",
+          border: "2px solid #F87171",
+          backgroundColor: "#FEFCE8",
+          color: "#EF4444",
+          textAlign: "center",
+          fontWeight: 900,
+        }}
+      >
+        🙏 {sticker.text}
+      </div>
+    );
+  }
+
+  if (sticker.type === "cloud") {
+    return (
+      <div
+        style={{
+          ...baseStyle,
+          borderRadius: "2rem",
+          border: "2px solid #111111",
+          backgroundColor: "#ECFEFF",
+          color: "#262626",
+          textAlign: "center",
+          fontWeight: 700,
+        }}
+      >
+        {sticker.text}
+      </div>
+    );
+  }
+
+  if (sticker.type === "speech") {
+    return (
+      <div
+        style={{
+          ...baseStyle,
+          borderRadius: "999px",
+          border: "2px solid #111111",
+          backgroundColor: "#FFFFFF",
+          color: "#262626",
+          textAlign: "center",
+          fontWeight: 700,
+        }}
+      >
+        {sticker.text}
+      </div>
+    );
+  }
+
+  if (sticker.type === "zigzag") {
+    return (
+      <div
+        style={{
+          ...baseStyle,
+          border: "2px solid #111111",
+          backgroundColor: "#FFFFFF",
+          color: "#171717",
+          textAlign: "center",
+          fontWeight: 900,
+        }}
+      >
+        {sticker.text}
+      </div>
+    );
+  }
+
+  if (sticker.type === "vertical") {
+    return (
+      <div
+        style={{
+          borderRadius: "4px",
+          border: "2px solid #111111",
+          backgroundColor: "#F0FDF4",
+          color: "#171717",
+          padding: "8px 6px",
+          textAlign: "center",
+          fontSize: "10px",
+          fontWeight: 700,
+          lineHeight: "1.2",
+          writingMode: "vertical-rl",
+          boxSizing: "border-box",
+        }}
+      >
+        {sticker.text}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        ...baseStyle,
+        border: "2px solid #22C55E",
+        backgroundColor: "#FFFFFF",
+        color: "#16A34A",
+        textAlign: "center",
+        fontWeight: 700,
+      }}
+    >
+      {sticker.text}
+    </div>
+  );
 }
 
-function CharmCard({ charm, background, textColor, character, characterScale, characterOffsetY, selectedStickerIds, captureRef }) {
+function CharacterImage({
+  character,
+  characterScale = 1,
+  characterOffsetX = 0,
+  characterOffsetY = 20,
+  draggable = false,
+  onCharacterDragEnd,
+}) {
+  const [hasError, setHasError] = useState(false);
+
+  const wrapperClassName = `mx-auto flex h-44 w-44 items-center justify-center ${draggable ? "cursor-grab touch-none active:cursor-grabbing" : ""}`;
+  const wrapperStyle = {
+    x: characterOffsetX,
+    y: characterOffsetY,
+    scale: characterScale,
+  };
+
+  const handleDragEnd = (_, info) => {
+    if (!onCharacterDragEnd) return;
+    onCharacterDragEnd(info.offset.x, info.offset.y);
+  };
+
+  return (
+    <motion.div
+      drag={draggable}
+      dragMomentum={false}
+      dragElastic={0}
+      whileDrag={draggable ? { scale: characterScale * 1.04, zIndex: 25 } : undefined}
+      onDragEnd={handleDragEnd}
+      className={wrapperClassName}
+      style={wrapperStyle}
+    >
+      {hasError ? (
+        <div className="flex h-40 w-40 items-center justify-center rounded-full text-6xl shadow-sm" style={{ backgroundColor: "rgba(255,255,255,0.6)" }}>
+          {character.fallback}
+        </div>
+      ) : (
+        <img src={character.image} alt={`${character.name} 캐릭터`} onError={() => setHasError(true)} className="h-44 w-44 object-contain drop-shadow-md" />
+      )}
+    </motion.div>
+  );
+}
+
+function CharmCard({
+  charm,
+  background,
+  textColor,
+  character,
+  characterScale,
+  characterOffsetX,
+  characterOffsetY,
+  selectedStickerIds,
+  captureRef,
+  draggableCharacter = false,
+  onCharacterDragEnd,
+}) {
   const selectedStickers = selectedStickerIds.map((id) => stickerOptions.find((item) => item.id === id)).filter(Boolean);
 
   return (
@@ -197,7 +385,7 @@ function CharmCard({ charm, background, textColor, character, characterScale, ch
       </div>
 
       <div className="relative z-10 my-3 flex flex-1 items-center justify-center rounded-[1.65rem] p-3 pt-8" style={{ backgroundColor: "rgba(255,255,255,0.35)", color: "#151515" }}>
-        <CharacterImage character={character} characterScale={characterScale} characterOffsetY={characterOffsetY} />
+        <CharacterImage character={character} characterScale={characterScale} characterOffsetX={characterOffsetX} characterOffsetY={characterOffsetY} draggable={draggableCharacter} onCharacterDragEnd={onCharacterDragEnd} />
         <div className="absolute left-4 top-5 text-base" style={{ color: "#151515" }}>✦</div>
         <div className="absolute right-5 top-14 text-base" style={{ color: "#151515" }}>✦</div>
         <div className="absolute left-4 bottom-12 text-lg">☁️</div>
@@ -285,6 +473,7 @@ export default function PayboocLuckyCharmMobileWeb() {
   const [activeTextColorId, setActiveTextColorId] = useState("red");
   const [activeCharacterId, setActiveCharacterId] = useState("pay");
   const [characterScale, setCharacterScale] = useState(1);
+  const [characterOffsetX, setCharacterOffsetX] = useState(0);
   const [characterOffsetY, setCharacterOffsetY] = useState(20);
   const [selectedStickerIds, setSelectedStickerIds] = useState(["s3", "s9", "s10"]);
   const [screen, setScreen] = useState("home");
@@ -319,99 +508,113 @@ export default function PayboocLuckyCharmMobileWeb() {
     setSelectedStickerIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
   };
 
-const saveCharmImage = async () => {
-  const target = charmCardRef.current;
+  const handleCharacterDragEnd = (deltaX, deltaY) => {
+    setCharacterOffsetX((prev) => clamp(prev + deltaX, CHARACTER_SIZE_LIMITS.minOffsetX, CHARACTER_SIZE_LIMITS.maxOffsetX));
+    setCharacterOffsetY((prev) => clamp(prev + deltaY, CHARACTER_SIZE_LIMITS.minOffsetY, CHARACTER_SIZE_LIMITS.maxOffsetY));
+  };
 
-  if (!target) {
-    setSaveStatus("저장할 부적을 찾지 못했어요. 다시 시도해주세요.");
-    return;
-  }
+  const resetCharacterPosition = () => {
+    setCharacterScale(1);
+    setCharacterOffsetX(0);
+    setCharacterOffsetY(20);
+  };
 
-  try {
-    setSaveStatus("화면 그대로 이미지를 만드는 중이에요...");
+  const saveCharmImage = async () => {
+    const target = charmCardRef.current;
 
-    // 폰트 / 이미지 / 화면 렌더링이 끝난 뒤 캡처
-    if (document.fonts?.ready) {
-      await document.fonts.ready;
-    }
-
-    await waitForImagesToLoad(target);
-
-    // React 상태, framer-motion transform, 이미지 렌더링 반영 대기
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-
-    const rect = target.getBoundingClientRect();
-
-    const canvas = await html2canvas(target, {
-      backgroundColor: null,
-
-      // 실제 화면에 보이는 크기 기준으로 캡처
-      width: rect.width,
-      height: rect.height,
-      windowWidth: document.documentElement.clientWidth,
-      windowHeight: document.documentElement.clientHeight,
-
-      // 너무 과하게 3배 확대하면 브라우저별 렌더링 차이가 날 수 있어서
-      // 화면과 가장 비슷하게 devicePixelRatio 기준 사용
-      scale: window.devicePixelRatio || 2,
-
-      useCORS: true,
-      allowTaint: true,
-      logging: false,
-
-      // 핵심: 저장용 복제본에서 스타일을 강제로 바꾸지 않음
-      onclone: (clonedDocument) => {
-        const clonedCard = clonedDocument.querySelector('[data-capture-card="true"]');
-
-        if (clonedCard) {
-          clonedCard.style.margin = "0";
-          clonedCard.style.transform = "none";
-        }
-      },
-    });
-
-    const blob = await new Promise((resolve) =>
-      canvas.toBlob(resolve, "image/png")
-    );
-
-    if (!blob) throw new Error("이미지 생성에 실패했습니다.");
-
-    const fileName = `paybooc-lucky-charm-${activeCharm.id}.png`;
-    const file = new File([blob], fileName, { type: "image/png" });
-
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({
-        files: [file],
-        title: "오늘의 행운 부적",
-        text: `${OFFICIAL_TAG} 태그하고 오늘의 행운 부적 이벤트에 참여해보세요!`,
-      });
-
-      setSaveStatus(
-        "공유 화면이 열렸어요. 인스타그램 스토리에 올릴 때 @bccard_official을 태그해주세요."
-      );
+    if (!target) {
+      setSaveStatus("저장할 부적을 찾지 못했어요. 다시 시도해주세요.");
       return;
     }
 
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
+    try {
+      setSaveStatus("화면 그대로 이미지를 만드는 중이에요...");
 
-    setSaveStatus(
-      "이미지가 저장/다운로드됐어요."
-    );
-  } catch (error) {
-    console.error(error);
-    setSaveStatus(
-      "이미지 저장 중 문제가 생겼어요. 다시 해주세요."
-    );
-  }
-};        </header>
+      if (document.fonts?.ready) {
+        await document.fonts.ready;
+      }
+
+      await waitForImagesToLoad(target);
+
+      // 드래그 위치, 이미지, 폰트 렌더링이 화면에 완전히 반영된 뒤 캡처합니다.
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+
+      const rect = target.getBoundingClientRect();
+      const captureWidth = Math.round(rect.width);
+      const captureHeight = Math.round(rect.height);
+
+      const canvas = await html2canvas(target, {
+        backgroundColor: null,
+        width: captureWidth,
+        height: captureHeight,
+        windowWidth: document.documentElement.clientWidth,
+        windowHeight: document.documentElement.clientHeight,
+        scale: 3,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        foreignObjectRendering: false,
+        onclone: (clonedDocument) => {
+          const clonedCard = clonedDocument.querySelector('[data-capture-card="true"]');
+
+          if (clonedCard) {
+            clonedCard.style.width = `${captureWidth}px`;
+            clonedCard.style.height = `${captureHeight}px`;
+            clonedCard.style.maxWidth = "none";
+            clonedCard.style.minWidth = `${captureWidth}px`;
+            clonedCard.style.margin = "0";
+            clonedCard.style.transform = "none";
+            clonedCard.style.aspectRatio = "9 / 16";
+            clonedCard.style.boxSizing = "border-box";
+          }
+        },
+      });
+
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+
+      if (!blob) throw new Error("이미지 생성에 실패했습니다.");
+
+      const fileName = `paybooc-lucky-charm-${activeCharm.id}.png`;
+      const file = new File([blob], fileName, { type: "image/png" });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: "오늘의 행운 부적",
+          text: `${OFFICIAL_TAG} 태그하고 오늘의 행운 부적 이벤트에 참여해보세요!`,
+        });
+
+        setSaveStatus("공유 화면이 열렸어요. 인스타그램 스토리에 올릴 때 @bccard_official을 태그해주세요.");
+        return;
+      }
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+
+      setSaveStatus("화면에 보이는 모습 그대로 이미지가 저장/다운로드됐어요.");
+    } catch (error) {
+      console.error(error);
+      setSaveStatus("이미지 저장 중 문제가 생겼어요. StackBlitz 미리보기에서는 제한될 수 있으니 배포 링크에서 다시 테스트해주세요.");
+    }
+  };
+
+  return (
+    <main className="min-h-screen bg-neutral-100 text-[#151515]">
+      <div className="mx-auto min-h-screen max-w-[430px] bg-white shadow-2xl">
+        <header className="sticky top-0 z-50 border-b border-neutral-100 bg-white/95 px-5 py-4 backdrop-blur">
+          <div className="flex items-center justify-between">
+            <button className="text-2xl" onClick={() => (screen === "home" ? undefined : setScreen("home"))}>←</button>
+            <h1 className="text-lg font-black">오늘의 행운 부적</h1>
+            <span className="text-xs font-black text-[#E6002D]">paybooc</span>
+          </div>
+        </header>
 
         {screen === "home" && (
           <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-5 pb-28 pt-5">
@@ -476,7 +679,7 @@ const saveCharmImage = async () => {
         {screen === "custom" && (
           <motion.section initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="px-5 pb-32 pt-5">
             <div className="mb-5 flex items-end justify-between"><div><p className="text-sm font-black text-[#E6002D]">CHARM PREVIEW</p><h2 className="mt-1 text-2xl font-black">부적 꾸미기</h2></div><button onClick={() => setScreen("share")} className="rounded-full bg-black px-4 py-2 text-xs font-black text-white">완료</button></div>
-            <CharmCard charm={activeCharm} background={activeBg} textColor={activeTextColor} character={activeCharacter} characterScale={characterScale} characterOffsetY={characterOffsetY} selectedStickerIds={selectedStickerIds} />
+            <CharmCard charm={activeCharm} background={activeBg} textColor={activeTextColor} character={activeCharacter} characterScale={characterScale} characterOffsetX={characterOffsetX} characterOffsetY={characterOffsetY} selectedStickerIds={selectedStickerIds} draggableCharacter onCharacterDragEnd={handleCharacterDragEnd} />
 
             <section className="mt-6">
               <div className="mb-3 flex items-center justify-between"><h3 className="text-lg font-black">캐릭터 선택</h3><p className="text-xs font-bold text-neutral-400">페이 · 부기 · 호야</p></div>
@@ -491,11 +694,9 @@ const saveCharmImage = async () => {
             </section>
 
             <section className="mt-6 rounded-[1.5rem] bg-neutral-50 p-4">
-              <div className="mb-4 flex items-center justify-between"><h3 className="text-lg font-black">캐릭터 크기/위치 조절</h3><button onClick={() => { setCharacterScale(1); setCharacterOffsetY(20); }} className="rounded-full bg-white px-3 py-1 text-xs font-black text-neutral-500">초기화</button></div>
+              <div className="mb-4 flex items-center justify-between"><div><h3 className="text-lg font-black">캐릭터 크기 조절</h3><p className="mt-1 text-xs font-bold text-neutral-400">위치는 부적 안 캐릭터를 손으로 끌어서 움직여요</p></div><button onClick={resetCharacterPosition} className="rounded-full bg-white px-3 py-1 text-xs font-black text-neutral-500">초기화</button></div>
               <label className="block text-xs font-black text-neutral-500">크기</label>
               <div className="mt-2 flex items-center gap-3"><span className="text-xs font-bold text-neutral-400">작게</span><input type="range" min={CHARACTER_SIZE_LIMITS.minScale} max={CHARACTER_SIZE_LIMITS.maxScale} step="0.05" value={characterScale} onChange={(event) => setCharacterScale(Number(event.target.value))} className="w-full accent-[#E6002D]" /><span className="text-xs font-bold text-neutral-400">크게</span></div>
-              <label className="mt-4 block text-xs font-black text-neutral-500">위치</label>
-              <div className="mt-2 flex items-center gap-3"><span className="text-xs font-bold text-neutral-400">위로</span><input type="range" min={CHARACTER_SIZE_LIMITS.minOffsetY} max={CHARACTER_SIZE_LIMITS.maxOffsetY} step="2" value={characterOffsetY} onChange={(event) => setCharacterOffsetY(Number(event.target.value))} className="w-full accent-[#E6002D]" /><span className="text-xs font-bold text-neutral-400">아래</span></div>
             </section>
 
             <section className="mt-6">
@@ -526,7 +727,7 @@ const saveCharmImage = async () => {
             <p className="text-sm font-black text-[#E6002D]">READY TO SHARE</p>
             <h2 className="mt-2 text-3xl font-black">이제 스토리에 올리면 끝!</h2>
             <p className="mt-2 text-sm leading-relaxed text-neutral-500">완성된 행운 부적을 저장하고 인스타그램 스토리에 공유해보세요. 스토리에 @bccard_official을 태그하면 응모 확인이 더 쉬워져요.</p>
-            <div className="mt-6"><CharmCard charm={activeCharm} background={activeBg} textColor={activeTextColor} character={activeCharacter} characterScale={characterScale} characterOffsetY={characterOffsetY} selectedStickerIds={selectedStickerIds} captureRef={charmCardRef} /></div>
+            <div className="mt-6"><CharmCard charm={activeCharm} background={activeBg} textColor={activeTextColor} character={activeCharacter} characterScale={characterScale} characterOffsetX={characterOffsetX} characterOffsetY={characterOffsetY} selectedStickerIds={selectedStickerIds} captureRef={charmCardRef} /></div>
             <div className="mt-6 grid gap-3">
               <button onClick={saveCharmImage} className="flex items-center justify-center gap-2 rounded-2xl bg-black px-5 py-4 font-black text-white">부적 이미지 저장하기 <DownloadIcon className="h-5 w-5" /></button>
               <button onClick={() => window.open(INSTAGRAM_URL, "_blank", "noopener,noreferrer")} className="rounded-2xl bg-[#E6002D] px-5 py-4 font-black text-white">@bccard_official 태그하고 공유하기</button>
@@ -540,7 +741,7 @@ const saveCharmImage = async () => {
                   <input type="file" accept="image/*" onChange={(event) => setStoryCaptureName(event.target.files?.[0]?.name || "")} className="mt-2 w-full rounded-2xl bg-white p-3 text-xs font-bold" />
                   {storyCaptureName && <p className="mt-2 text-xs font-bold text-[#E6002D]">업로드 파일: {storyCaptureName}</p>}
                   <label className="mt-4 block text-xs font-black text-neutral-500">인스타그램 아이디</label>
-                  <input value={entryForm.instagramId} onChange={(event) => setEntryForm((prev) => ({ ...prev, instagramId: event.target.value }))} placeholder="예: bccard_official" className="mt-2 w-full rounded-2xl bg-white px-4 py-3 text-sm font-bold outline-none" />
+                  <input value={entryForm.instagramId} onChange={(event) => setEntryForm((prev) => ({ ...prev, instagramId: event.target.value }))} placeholder="예: bamos4study" className="mt-2 w-full rounded-2xl bg-white px-4 py-3 text-sm font-bold outline-none" />
                   <label className="mt-4 block text-xs font-black text-neutral-500">이름</label>
                   <input value={entryForm.name} onChange={(event) => setEntryForm((prev) => ({ ...prev, name: event.target.value }))} placeholder="이름 입력" className="mt-2 w-full rounded-2xl bg-white px-4 py-3 text-sm font-bold outline-none" />
                   <label className="mt-4 block text-xs font-black text-neutral-500">전화번호</label>
