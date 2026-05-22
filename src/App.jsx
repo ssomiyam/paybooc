@@ -319,59 +319,99 @@ export default function PayboocLuckyCharmMobileWeb() {
     setSelectedStickerIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
   };
 
-  const saveCharmImage = async () => {
-    if (!charmCardRef.current) {
-      setSaveStatus("저장할 부적을 찾지 못했어요. 다시 시도해주세요.");
+const saveCharmImage = async () => {
+  const target = charmCardRef.current;
+
+  if (!target) {
+    setSaveStatus("저장할 부적을 찾지 못했어요. 다시 시도해주세요.");
+    return;
+  }
+
+  try {
+    setSaveStatus("화면 그대로 이미지를 만드는 중이에요...");
+
+    // 폰트 / 이미지 / 화면 렌더링이 끝난 뒤 캡처
+    if (document.fonts?.ready) {
+      await document.fonts.ready;
+    }
+
+    await waitForImagesToLoad(target);
+
+    // React 상태, framer-motion transform, 이미지 렌더링 반영 대기
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+
+    const rect = target.getBoundingClientRect();
+
+    const canvas = await html2canvas(target, {
+      backgroundColor: null,
+
+      // 실제 화면에 보이는 크기 기준으로 캡처
+      width: rect.width,
+      height: rect.height,
+      windowWidth: document.documentElement.clientWidth,
+      windowHeight: document.documentElement.clientHeight,
+
+      // 너무 과하게 3배 확대하면 브라우저별 렌더링 차이가 날 수 있어서
+      // 화면과 가장 비슷하게 devicePixelRatio 기준 사용
+      scale: window.devicePixelRatio || 2,
+
+      useCORS: true,
+      allowTaint: true,
+      logging: false,
+
+      // 핵심: 저장용 복제본에서 스타일을 강제로 바꾸지 않음
+      onclone: (clonedDocument) => {
+        const clonedCard = clonedDocument.querySelector('[data-capture-card="true"]');
+
+        if (clonedCard) {
+          clonedCard.style.margin = "0";
+          clonedCard.style.transform = "none";
+        }
+      },
+    });
+
+    const blob = await new Promise((resolve) =>
+      canvas.toBlob(resolve, "image/png")
+    );
+
+    if (!blob) throw new Error("이미지 생성에 실패했습니다.");
+
+    const fileName = `paybooc-lucky-charm-${activeCharm.id}.png`;
+    const file = new File([blob], fileName, { type: "image/png" });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        files: [file],
+        title: "오늘의 행운 부적",
+        text: `${OFFICIAL_TAG} 태그하고 오늘의 행운 부적 이벤트에 참여해보세요!`,
+      });
+
+      setSaveStatus(
+        "공유 화면이 열렸어요. 인스타그램 스토리에 올릴 때 @bccard_official을 태그해주세요."
+      );
       return;
     }
-    try {
-      setSaveStatus("이미지를 만드는 중이에요...");
-      await waitForImagesToLoad(charmCardRef.current);
-      const canvas = await html2canvas(charmCardRef.current, {
-        backgroundColor: null,
-        scale: 3,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        onclone: (clonedDocument) => {
-          const clonedCard = clonedDocument.querySelector('[data-capture-card="true"]');
-          if (clonedCard) sanitizeUnsupportedColors(clonedCard);
-        },
-      });
-      const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
-      if (!blob) throw new Error("이미지 생성에 실패했습니다.");
-      const fileName = `paybooc-lucky-charm-${activeCharm.id}.png`;
-      const file = new File([blob], fileName, { type: "image/png" });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: "오늘의 행운 부적", text: `${OFFICIAL_TAG} 태그하고 오늘의 행운 부적 이벤트에 참여해보세요!` });
-        setSaveStatus("공유 화면이 열렸어요. 인스타그램 스토리에 올릴 때 @bccard_official을 태그해주세요.");
-        return;
-      }
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-      setSaveStatus("이미지가 저장/다운로드됐어요. 휴대폰에서는 다운로드 폴더 또는 공유 시트를 확인해주세요.");
-    } catch (error) {
-      console.error(error);
-      setSaveStatus("이미지 저장 중 문제가 생겼어요. StackBlitz 미리보기에서는 제한될 수 있으니 배포 링크에서 다시 테스트해주세요.");
-    }
-  };
 
-  return (
-    <main className="min-h-screen bg-neutral-100 text-[#151515]">
-      <div className="mx-auto min-h-screen max-w-[430px] bg-white shadow-2xl">
-        <header className="sticky top-0 z-50 border-b border-neutral-100 bg-white/95 px-5 py-4 backdrop-blur">
-          <div className="flex items-center justify-between">
-            <button className="text-2xl" onClick={() => (screen === "home" ? undefined : setScreen("home"))}>←</button>
-            <h1 className="text-lg font-black">오늘의 행운 부적</h1>
-            <span className="text-xs font-black text-[#E6002D]">paybooc</span>
-          </div>
-        </header>
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+
+    setSaveStatus(
+      "이미지가 저장/다운로드됐어요."
+    );
+  } catch (error) {
+    console.error(error);
+    setSaveStatus(
+      "이미지 저장 중 문제가 생겼어요. 다시 해주세요."
+    );
+  }
+};        </header>
 
         {screen === "home" && (
           <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-5 pb-28 pt-5">
