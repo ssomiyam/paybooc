@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import html2canvas from "html2canvas";
 import { motion } from "framer-motion";
 
 function ArrowIcon({ className = "" }) {
@@ -18,6 +17,12 @@ function DownloadIcon({ className = "" }) {
     </svg>
   );
 }
+
+const CARD_W = 310;
+const CARD_H = 540;
+const CHARACTER_BASE_SIZE = 150;
+const OFFICIAL_TAG = "@bccard_official";
+const INSTAGRAM_URL = "https://www.instagram.com/bccard_official?igsh=bHpwendvOW85Mm1i";
 
 const charms = [
   { id: "money", label: "재물운", title: "돈 붙는 행운 부적", sub: "지갑은 닫고, 혜택은 열리는 날", score: 92, emoji: "💰", advice: "오늘은 작은 할인도 놓치지 말기" },
@@ -80,31 +85,6 @@ const stickerOptions = [
   { id: "s30", text: "행운 충전", type: "pill" },
 ];
 
-const CHARACTER_SIZE_LIMITS = { minScale: 0.8, maxScale: 1.45, minOffsetX: -90, maxOffsetX: 90, minOffsetY: -60, maxOffsetY: 80 };
-const STICKER_DRAG_LIMITS = { minLeft: 0, maxLeft: 210, minTop: 0, maxTop: 220 };
-const DEFAULT_STICKER_SLOTS = [
-  { left: 150, top: 18 },
-  { left: 196, top: 112 },
-  { left: 18, top: 160 },
-  { left: 190, top: 172 },
-  { left: 16, top: 24 },
-  { left: 176, top: 54 },
-  { left: 60, top: 12 },
-  { left: 136, top: 172 },
-  { left: 64, top: 144 },
-  { left: 152, top: 6 },
-  { left: 20, top: 96 },
-  { left: 176, top: 196 },
-];
-const INITIAL_STICKER_POSITIONS = {
-  s3: { left: 150, top: 18 },
-  s9: { left: 188, top: 86 },
-  s10: { left: 16, top: 166 },
-};
-const screens = ["home", "select", "custom", "share"];
-const OFFICIAL_TAG = "@bccard_official";
-const INSTAGRAM_URL = "https://www.instagram.com/bccard_official?igsh=bHpwendvOW85Mm1i";
-
 const fortuneTabs = [
   { id: "total", label: "총운", emoji: "🍀" },
   { id: "morning", label: "오전", emoji: "☀️" },
@@ -127,10 +107,6 @@ function getRandomItem(items) {
   return items[Math.floor(Math.random() * items.length)];
 }
 
-function clamp(value, min, max) {
-  return Math.min(Math.max(value, min), max);
-}
-
 function createRandomFortunes() {
   return fortuneTabs.reduce((acc, tab) => {
     acc[tab.id] = { score: getRandomScore(), message: getRandomItem(fortuneMessages[tab.id]), emoji: tab.emoji };
@@ -146,265 +122,190 @@ function formatKoreanDateTime(date) {
   return new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }).format(date);
 }
 
-function waitForImagesToLoad(container) {
-  const images = Array.from(container.querySelectorAll("img"));
-  return Promise.all(
-    images.map((image) => {
-      if (image.complete) return Promise.resolve();
-      return new Promise((resolve) => {
-        image.onload = resolve;
-        image.onerror = resolve;
-      });
-    })
-  );
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
 }
 
-function isUnsupportedColor(value) {
-  return typeof value === "string" && /(oklab|oklch|color\()/i.test(value);
+function svgPointFromEvent(svg, event) {
+  const point = svg.createSVGPoint();
+  point.x = event.clientX;
+  point.y = event.clientY;
+  return point.matrixTransform(svg.getScreenCTM().inverse());
 }
 
-function sanitizeUnsupportedColors(root) {
-  const nodes = [root, ...Array.from(root.querySelectorAll("*"))];
-  nodes.forEach((node) => {
-    const computed = window.getComputedStyle(node);
-    if (isUnsupportedColor(computed.color)) node.style.color = "#151515";
-    if (isUnsupportedColor(computed.backgroundColor)) node.style.backgroundColor = "rgba(255,255,255,0)";
-    if (isUnsupportedColor(computed.borderTopColor)) node.style.borderColor = "rgba(21,21,21,0.18)";
-    if (isUnsupportedColor(computed.boxShadow)) node.style.boxShadow = "none";
-    if (isUnsupportedColor(computed.textShadow)) node.style.textShadow = "none";
-  });
-}
-
-function Sticker({ sticker, small = false }) {
-  const baseStyle = {
-    fontSize: small ? "10px" : "12px",
-    padding: small ? "4px 8px" : "8px 12px",
-    lineHeight: 1.15,
-    whiteSpace: "nowrap",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    textAlign: "center",
-    boxSizing: "border-box",
-  };
-
-  if (sticker.type === "emoji") {
-    return <div style={{ fontSize: small ? "24px" : "30px", lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{sticker.text}</div>;
-  }
-
-  if (sticker.type === "burst") {
-    return <div style={{ ...baseStyle, transform: "rotate(-5deg)", border: "2px solid #F87171", backgroundColor: "#FEF3C7", color: "#EF4444", fontWeight: 900, minHeight: small ? 28 : 36 }}>{sticker.text}</div>;
-  }
-  if (sticker.type === "heart") {
-    return <div style={{ ...baseStyle, borderRadius: "999px", border: "2px solid #111111", backgroundColor: "#FCE7F3", color: "#262626", fontWeight: 700, minHeight: small ? 28 : 36 }}>{sticker.text}</div>;
-  }
-  if (sticker.type === "pill") {
-    return <div style={{ ...baseStyle, borderRadius: "999px", border: "2px solid #F87171", backgroundColor: "#FEFCE8", color: "#EF4444", fontWeight: 900, minHeight: small ? 28 : 36 }}>🙏 {sticker.text}</div>;
-  }
-  if (sticker.type === "cloud") {
-    return <div style={{ ...baseStyle, borderRadius: "2rem", border: "2px solid #111111", backgroundColor: "#ECFEFF", color: "#262626", fontWeight: 700, minHeight: small ? 28 : 36 }}>{sticker.text}</div>;
-  }
-  if (sticker.type === "speech") {
-    return <div style={{ ...baseStyle, borderRadius: "999px", border: "2px solid #111111", backgroundColor: "#FFFFFF", color: "#262626", fontWeight: 700, minHeight: small ? 28 : 36 }}>{sticker.text}</div>;
-  }
-  if (sticker.type === "zigzag") {
-    return <div style={{ ...baseStyle, border: "2px solid #111111", backgroundColor: "#FFFFFF", color: "#171717", fontWeight: 900, minHeight: small ? 28 : 36 }}>{sticker.text}</div>;
-  }
-  if (sticker.type === "vertical") {
-    return <div style={{ borderRadius: "4px", border: "2px solid #111111", backgroundColor: "#F0FDF4", color: "#171717", padding: "8px 6px", textAlign: "center", fontSize: "10px", fontWeight: 700, lineHeight: 1.2, writingMode: "vertical-rl", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{sticker.text}</div>;
-  }
-  return <div style={{ ...baseStyle, border: "2px solid #22C55E", backgroundColor: "#FFFFFF", color: "#16A34A", fontWeight: 700, minHeight: small ? 28 : 36 }}>{sticker.text}</div>;
-}
-
-function CharacterImage({
-  character,
-  characterScale = 1,
-  characterOffsetX = 0,
-  characterOffsetY = 20,
-  draggable = false,
-  onCharacterDragEnd,
-}) {
-  const [hasError, setHasError] = useState(false);
-
-  const inner = hasError ? (
-    <div className="flex h-40 w-40 items-center justify-center rounded-full text-6xl shadow-sm" style={{ backgroundColor: "rgba(255,255,255,0.6)" }}>
-      {character.fallback}
-    </div>
-  ) : (
-    <img src={character.image} alt={`${character.name} 캐릭터`} onError={() => setHasError(true)} className="h-44 w-44 object-contain drop-shadow-md" draggable={false} />
-  );
-
-  const boxStyle = {
-    position: "absolute",
-    left: "50%",
-    top: "50%",
-    width: "176px",
-    height: "176px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: draggable ? "grab" : "default",
-    touchAction: "none",
-    zIndex: 12,
-    transform: `translate(-50%, -50%) translate(${characterOffsetX}px, ${characterOffsetY}px) scale(${characterScale})`,
-    transformOrigin: "center center",
-  };
-
-  if (!draggable) {
-    return <div style={boxStyle}>{inner}</div>;
-  }
-
-  return (
-    <motion.div
-      drag
-      dragMomentum={false}
-      dragElastic={0}
-      whileDrag={{ scale: 1.03, zIndex: 25 }}
-      onDragEnd={(_, info) => onCharacterDragEnd?.(info.offset.x, info.offset.y)}
-      style={boxStyle}
-      className="touch-none active:cursor-grabbing"
-    >
-      {inner}
-    </motion.div>
-  );
-}
-
-function CharmCard({
-  charm,
-  background,
-  textColor,
-  character,
-  characterScale,
-  characterOffsetX,
-  characterOffsetY,
-  selectedStickerIds,
-  stickerPositions = {},
-  captureRef,
-  draggableCharacter = false,
-  onCharacterDragEnd,
-  draggableStickers = false,
-  onStickerDragEnd,
-}) {
-  const selectedStickers = selectedStickerIds.map((id) => stickerOptions.find((item) => item.id === id)).filter(Boolean);
-
-  const renderSticker = (sticker, index) => {
-    const fallbackSlot = DEFAULT_STICKER_SLOTS[index % DEFAULT_STICKER_SLOTS.length];
-    const savedPosition = stickerPositions[sticker.id] || fallbackSlot;
-    const stickerNode = <Sticker sticker={sticker} small />;
-
-    const commonStyle = {
-      position: "absolute",
-      left: `${savedPosition.left}px`,
-      top: `${savedPosition.top}px`,
-      zIndex: 20,
-      touchAction: "none",
-    };
-
-    if (!draggableStickers) {
-      return <div key={`${sticker.id}-${index}`} style={commonStyle}>{stickerNode}</div>;
-    }
-
-    return (
-      <motion.div
-        key={`${sticker.id}-${index}`}
-        drag
-        dragMomentum={false}
-        dragElastic={0}
-        whileDrag={{ scale: 1.06, rotate: 2, zIndex: 30 }}
-        onDragEnd={(_, info) => onStickerDragEnd?.(sticker.id, info.offset.x, info.offset.y)}
-        style={commonStyle}
-        className="cursor-grab touch-none active:cursor-grabbing"
-      >
-        {stickerNode}
-      </motion.div>
-    );
-  };
-
-  return (
-    <div ref={captureRef} data-capture-card="true" className="relative mx-auto w-full max-w-[310px] overflow-hidden rounded-[2rem] border-[3px] p-4 shadow-xl" style={{ backgroundColor: background.bg, borderColor: background.border, color: "#151515", boxSizing: "border-box" }}>
-      <div className="absolute inset-2 rounded-[1.6rem] border-2 opacity-70" style={{ borderColor: background.border }} />
-      <div className="absolute -left-10 top-20 h-44 w-44 rounded-full blur-3xl" style={{ backgroundColor: "rgba(255,255,255,0.3)" }} />
-      <div className="absolute -right-10 bottom-24 h-44 w-44 rounded-full blur-3xl" style={{ backgroundColor: "rgba(255,255,255,0.3)" }} />
-
-      <div className="relative z-10 text-center" style={{ color: "#151515" }}>
-        <div className="mx-auto mb-3 w-fit rounded-2xl border-2 px-4 py-2" style={{ borderColor: background.border, backgroundColor: "rgba(255,255,255,0.6)" }}>
-          <p className="text-xs font-black tracking-widest" style={{ color: textColor.value }}>오늘의 {charm.label}</p>
-        </div>
-        <p className="text-[10px] font-bold" style={{ color: "#737373" }}>PAYBOOC LUCKY CHARM</p>
-        <h2 className="mt-2 text-2xl font-black tracking-tight" style={{ color: textColor.value }}>{charm.title}</h2>
-      </div>
-
-      <div className="relative z-10 mt-3 rounded-[1.65rem] p-3 pt-8" style={{ minHeight: "290px", backgroundColor: "rgba(255,255,255,0.35)", color: "#151515" }}>
-        <CharacterImage character={character} characterScale={characterScale} characterOffsetX={characterOffsetX} characterOffsetY={characterOffsetY} draggable={draggableCharacter} onCharacterDragEnd={onCharacterDragEnd} />
-        <div className="absolute left-4 top-5 text-base" style={{ color: "#151515" }}>✦</div>
-        <div className="absolute right-5 top-14 text-base" style={{ color: "#151515" }}>✦</div>
-        <div className="absolute left-4 bottom-12 text-lg">☁️</div>
-        <div className="absolute right-4 bottom-16 text-lg">☁️</div>
-        {selectedStickers.map((sticker, index) => renderSticker(sticker, index))}
-      </div>
-
-      <div className="relative z-10 mt-4 rounded-2xl border-2 px-3 py-4 text-center" style={{ borderColor: background.border, backgroundColor: "rgba(255,255,255,0.65)", color: "#151515" }}>
-        <p className="text-4xl font-black" style={{ color: textColor.value }}>{charm.score}</p>
-        <p className="mt-1 text-xs font-semibold" style={{ color: "#404040" }}>{charm.sub}</p>
-        <p className="mt-2 rounded-full px-3 py-2 text-[11px] font-bold" style={{ backgroundColor: "rgba(255,255,255,0.7)", color: "#404040" }}>{charm.advice}</p>
-      </div>
-
-      <div className="relative z-10 mx-2 mt-4 flex items-center justify-center rounded-full px-3 py-2 text-[10px] font-bold backdrop-blur-sm" style={{ backgroundColor: "rgba(255,255,255,0.5)", color: "#737373" }}>
-        <span>BC카드 · 페이북 · {OFFICIAL_TAG}</span>
-      </div>
-    </div>
-  );
-}
-
-function validateData() {
-  const uniqueCharmIds = new Set(charms.map((item) => item.id));
-  const uniqueCharacterIds = new Set(characters.map((item) => item.id));
-  const uniqueStickerIds = new Set(stickerOptions.map((item) => item.id));
-  const uniqueBackgroundIds = new Set(backgrounds.map((item) => item.id));
-  const sampleFortunes = createRandomFortunes();
-  const scoresAreInRange = Object.values(sampleFortunes).every((fortune) => fortune.score >= 60 && fortune.score <= 100);
-  const sampleCharmId = pickRandomCharmId();
-  const validCharacterSizeLimits = CHARACTER_SIZE_LIMITS.minScale < 1 && CHARACTER_SIZE_LIMITS.maxScale > 1 && CHARACTER_SIZE_LIMITS.minOffsetY < 0 && CHARACTER_SIZE_LIMITS.maxOffsetY > 0;
-  return {
-    hasCharms: charms.length === 5 && uniqueCharmIds.size === charms.length,
-    hasCharacters: characters.length === 3 && uniqueCharacterIds.size === characters.length,
-    hasStickers: stickerOptions.length >= 30 && uniqueStickerIds.size === stickerOptions.length,
-    hasBackgrounds: backgrounds.length >= 4 && uniqueBackgroundIds.size === backgrounds.length,
-    hasTextColors: textColors.length >= 4,
-    validDefaultCharm: charms.some((item) => item.id === "love"),
-    validDefaultCharacter: characters.some((item) => item.id === "pay"),
-    validScreens: screens.includes("home") && screens.includes("custom"),
-    validOfficialTag: OFFICIAL_TAG === "@bccard_official",
-    validInstagramUrl: INSTAGRAM_URL.includes("instagram.com/bccard_official"),
-    validFortuneTabs: fortuneTabs.length === 4 && fortuneTabs.every((tab) => fortuneMessages[tab.id]?.length >= 4),
-    validRandomCharm: charms.some((item) => item.id === sampleCharmId),
-    validScoreRange: scoresAreInRange,
-    validCharacterSizeLimits,
-    validCaptureSanitizer: typeof sanitizeUnsupportedColors === "function",
-    validEntryFields: ["instagramId", "name", "phone"].every((key) => Object.prototype.hasOwnProperty.call({ instagramId: "", name: "", phone: "" }, key)),
-  };
-}
-
-function runSelfTests() {
-  const checks = validateData();
-  return [
-    { name: "5개 부적 타입이 있고 ID가 중복되지 않는다", pass: checks.hasCharms },
-    { name: "페이·부기·호야 3개 캐릭터가 있고 ID가 중복되지 않는다", pass: checks.hasCharacters },
-    { name: "스티커가 30개 이상이고 ID가 중복되지 않는다", pass: checks.hasStickers },
-    { name: "배경 옵션이 4개 이상이고 ID가 중복되지 않는다", pass: checks.hasBackgrounds },
-    { name: "글씨 색상 옵션이 4개 이상 있다", pass: checks.hasTextColors },
-    { name: "기본 부적 love가 존재한다", pass: checks.validDefaultCharm },
-    { name: "기본 캐릭터 pay가 존재한다", pass: checks.validDefaultCharacter },
-    { name: "필수 화면 home/custom이 존재한다", pass: checks.validScreens },
-    { name: "공식 계정 태그가 @bccard_official로 설정되어 있다", pass: checks.validOfficialTag },
-    { name: "인스타그램 공식 계정 링크가 준비되어 있다", pass: checks.validInstagramUrl },
-    { name: "총운/오전/오후/밤 운세 탭과 랜덤 멘트가 준비되어 있다", pass: checks.validFortuneTabs },
-    { name: "랜덤 추천 부적 ID가 실제 부적 목록 안에 있다", pass: checks.validRandomCharm },
-    { name: "랜덤 운세 점수는 60점 이상 100점 이하이다", pass: checks.validScoreRange },
-    { name: "캐릭터 크기와 위치 조절 범위가 준비되어 있다", pass: checks.validCharacterSizeLimits },
-    { name: "이미지 저장 전 unsupported color sanitizer가 준비되어 있다", pass: checks.validCaptureSanitizer },
-    { name: "응모 폼 필드가 준비되어 있다", pass: checks.validEntryFields },
+function getStickerDefaultPosition(id, index) {
+  const defaults = [
+    { x: 80, y: 210 },
+    { x: 245, y: 245 },
+    { x: 55, y: 305 },
+    { x: 238, y: 335 },
+    { x: 60, y: 235 },
+    { x: 230, y: 205 },
+    { x: 90, y: 265 },
+    { x: 210, y: 290 },
   ];
+  if (id === "s3") return { x: 74, y: 205 };
+  if (id === "s9") return { x: 245, y: 250 };
+  if (id === "s10") return { x: 58, y: 305 };
+  return defaults[index % defaults.length];
+}
+
+function svgToDataUrl(svgElement) {
+  const clone = svgElement.cloneNode(true);
+  clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  clone.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+  clone.setAttribute("width", CARD_W);
+  clone.setAttribute("height", CARD_H);
+  clone.setAttribute("viewBox", `0 0 ${CARD_W} ${CARD_H}`);
+  const serializer = new XMLSerializer();
+  const svgText = serializer.serializeToString(clone);
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgText)}`;
+}
+
+function wrapText(text, maxChars = 12) {
+  if (text.length <= maxChars) return [text];
+  const chunks = [];
+  for (let i = 0; i < text.length; i += maxChars) chunks.push(text.slice(i, i + maxChars));
+  return chunks;
+}
+
+function StickerSvg({ sticker, position, draggable, onPointerDown }) {
+  const { x, y } = position;
+  const text = sticker.text;
+  const isEmoji = sticker.type === "emoji";
+  const lines = wrapText(text, 12);
+  const textWidth = Math.max(...lines.map((line) => line.length)) * 8 + 20;
+  const width = isEmoji ? 30 : clamp(textWidth, 44, 132);
+  const height = isEmoji ? 30 : sticker.type === "vertical" ? 62 : 28 + (lines.length - 1) * 12;
+
+  const styles = {
+    burst: { fill: "#FEF3C7", stroke: "#F87171", color: "#EF4444", radius: 2, rotate: -5, weight: 900 },
+    heart: { fill: "#FCE7F3", stroke: "#111111", color: "#262626", radius: 20, rotate: 0, weight: 700 },
+    pill: { fill: "#FEFCE8", stroke: "#F87171", color: "#EF4444", radius: 20, rotate: 0, weight: 900 },
+    cloud: { fill: "#ECFEFF", stroke: "#111111", color: "#262626", radius: 20, rotate: 0, weight: 700 },
+    speech: { fill: "#FFFFFF", stroke: "#111111", color: "#262626", radius: 20, rotate: 0, weight: 700 },
+    zigzag: { fill: "#FFFFFF", stroke: "#111111", color: "#171717", radius: 2, rotate: 0, weight: 900 },
+    box: { fill: "#FFFFFF", stroke: "#22C55E", color: "#16A34A", radius: 2, rotate: 0, weight: 700 },
+    vertical: { fill: "#F0FDF4", stroke: "#111111", color: "#171717", radius: 4, rotate: 0, weight: 700 },
+  };
+
+  if (isEmoji) {
+    return (
+      <g transform={`translate(${x} ${y})`} onPointerDown={draggable ? onPointerDown : undefined} style={{ cursor: draggable ? "grab" : "default", touchAction: "none" }}>
+        <text x="0" y="0" textAnchor="middle" dominantBaseline="central" fontSize="22">{text}</text>
+      </g>
+    );
+  }
+
+  const style = styles[sticker.type] || styles.box;
+  const displayLines = sticker.type === "pill" ? wrapText(`🙏 ${text}`, 11) : lines;
+
+  return (
+    <g transform={`translate(${x} ${y}) rotate(${style.rotate})`} onPointerDown={draggable ? onPointerDown : undefined} style={{ cursor: draggable ? "grab" : "default", touchAction: "none" }}>
+      <rect x={-width / 2} y={-height / 2} width={width} height={height} rx={style.radius} ry={style.radius} fill={style.fill} stroke={style.stroke} strokeWidth="2" />
+      {displayLines.map((line, lineIndex) => (
+        <text
+          key={`${sticker.id}-${lineIndex}`}
+          x="0"
+          y={(lineIndex - (displayLines.length - 1) / 2) * 12 + 1}
+          textAnchor="middle"
+          dominantBaseline="central"
+          fontSize="10"
+          fontWeight={style.weight}
+          fill={style.color}
+          style={{ userSelect: "none" }}
+        >
+          {line}
+        </text>
+      ))}
+    </g>
+  );
+}
+
+function CharmSvg({ charm, background, textColor, character, characterDataUrl, characterScale, characterPosition, selectedStickerIds, stickerPositions, editable, onDragStart }) {
+  const selectedStickers = selectedStickerIds.map((id) => stickerOptions.find((item) => item.id === id)).filter(Boolean);
+  const charSize = CHARACTER_BASE_SIZE * characterScale;
+  const charX = characterPosition.x - charSize / 2;
+  const charY = characterPosition.y - charSize / 2;
+
+  return (
+    <svg data-charm-svg="true" viewBox={`0 0 ${CARD_W} ${CARD_H}`} width="100%" height="auto" style={{ display: "block", borderRadius: 32, userSelect: "none", touchAction: "none" }}>
+      <defs>
+        <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="8" stdDeviation="8" floodColor="#000000" floodOpacity="0.14" />
+        </filter>
+        <filter id="characterShadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="6" stdDeviation="4" floodColor="#000000" floodOpacity="0.18" />
+        </filter>
+        <linearGradient id="glow" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.35" />
+          <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+
+      <rect x="0" y="0" width={CARD_W} height={CARD_H} rx="32" fill={background.bg} stroke={background.border} strokeWidth="3" filter="url(#softShadow)" />
+      <rect x="9" y="9" width={CARD_W - 18} height={CARD_H - 18} rx="25" fill="none" stroke={background.border} strokeWidth="2" opacity="0.65" />
+      <circle cx="5" cy="145" r="88" fill="url(#glow)" />
+      <circle cx="310" cy="435" r="95" fill="url(#glow)" />
+
+      <rect x="100" y="22" width="110" height="36" rx="18" fill="rgba(255,255,255,0.62)" stroke={background.border} strokeWidth="2" />
+      <text x="155" y="41" textAnchor="middle" dominantBaseline="central" fontSize="12" fontWeight="900" letterSpacing="2" fill={textColor.value}>오늘의 {charm.label}</text>
+      <text x="155" y="88" textAnchor="middle" fontSize="10" fontWeight="900" letterSpacing="2" fill="#737373">PAYBOOC LUCKY CHARM</text>
+      <text x="155" y="126" textAnchor="middle" fontSize="24" fontWeight="900" letterSpacing="-1" fill={textColor.value}>{charm.title}</text>
+
+      <rect x="21" y="155" width="268" height="225" rx="24" fill="rgba(255,255,255,0.35)" />
+      <text x="42" y="190" fontSize="13" fill="#151515">✦</text>
+      <text x="250" y="220" fontSize="13" fill="#151515">✦</text>
+      <text x="42" y="325" fontSize="18">☁️</text>
+      <text x="245" y="300" fontSize="18">☁️</text>
+
+      <g onPointerDown={editable ? (event) => onDragStart(event, "character", character.id) : undefined} style={{ cursor: editable ? "grab" : "default", touchAction: "none" }}>
+        {characterDataUrl ? (
+          <image href={characterDataUrl} x={charX} y={charY} width={charSize} height={charSize} preserveAspectRatio="xMidYMid meet" filter="url(#characterShadow)" />
+        ) : (
+          <text x={characterPosition.x} y={characterPosition.y} textAnchor="middle" dominantBaseline="central" fontSize={64 * characterScale}>{character.fallback}</text>
+        )}
+      </g>
+
+      {selectedStickers.map((sticker, index) => {
+        const position = stickerPositions[sticker.id] || getStickerDefaultPosition(sticker.id, index);
+        return (
+          <StickerSvg
+            key={sticker.id}
+            sticker={sticker}
+            position={position}
+            draggable={editable}
+            onPointerDown={(event) => onDragStart(event, "sticker", sticker.id)}
+          />
+        );
+      })}
+
+      <rect x="21" y="395" width="268" height="105" rx="17" fill="rgba(255,255,255,0.65)" stroke={background.border} strokeWidth="2" />
+      <text x="155" y="435" textAnchor="middle" dominantBaseline="central" fontSize="38" fontWeight="900" fill={textColor.value}>{charm.score}</text>
+      <text x="155" y="465" textAnchor="middle" dominantBaseline="central" fontSize="12" fontWeight="700" fill="#404040">{charm.sub}</text>
+      <rect x="36" y="478" width="238" height="26" rx="13" fill="rgba(255,255,255,0.7)" />
+      <text x="155" y="491" textAnchor="middle" dominantBaseline="central" fontSize="11" fontWeight="800" fill="#404040">{charm.advice}</text>
+
+      <rect x="28" y="514" width="254" height="22" rx="11" fill="rgba(255,255,255,0.5)" />
+      <text x="155" y="527" textAnchor="middle" dominantBaseline="central" fontSize="10" fontWeight="800" fill="#737373">BC카드 · 페이북 · {OFFICIAL_TAG}</text>
+    </svg>
+  );
+}
+
+async function imageToDataUrl(src) {
+  try {
+    const response = await fetch(src);
+    const blob = await response.blob();
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.warn("캐릭터 이미지를 Data URL로 변환하지 못했어요.", error);
+    return "";
+  }
 }
 
 export default function PayboocLuckyCharmMobileWeb() {
@@ -414,10 +315,13 @@ export default function PayboocLuckyCharmMobileWeb() {
   const [activeTextColorId, setActiveTextColorId] = useState("red");
   const [activeCharacterId, setActiveCharacterId] = useState("pay");
   const [characterScale, setCharacterScale] = useState(1);
-  const [characterOffsetX, setCharacterOffsetX] = useState(0);
-  const [characterOffsetY, setCharacterOffsetY] = useState(20);
+  const [characterPosition, setCharacterPosition] = useState({ x: 155, y: 270 });
   const [selectedStickerIds, setSelectedStickerIds] = useState(["s3", "s9", "s10"]);
-  const [stickerPositions, setStickerPositions] = useState(() => INITIAL_STICKER_POSITIONS);
+  const [stickerPositions, setStickerPositions] = useState({
+    s3: getStickerDefaultPosition("s3", 0),
+    s9: getStickerDefaultPosition("s9", 1),
+    s10: getStickerDefaultPosition("s10", 2),
+  });
   const [screen, setScreen] = useState("home");
   const [activeFortuneTabId, setActiveFortuneTabId] = useState("total");
   const [userName, setUserName] = useState("");
@@ -427,15 +331,15 @@ export default function PayboocLuckyCharmMobileWeb() {
   const [showEntryForm, setShowEntryForm] = useState(false);
   const [storyCaptureName, setStoryCaptureName] = useState("");
   const [entryForm, setEntryForm] = useState({ instagramId: "", name: "", phone: "" });
-  const charmCardRef = useRef(null);
+  const [characterDataUrls, setCharacterDataUrls] = useState({});
+  const svgWrapRef = useRef(null);
+  const dragRef = useRef(null);
 
   const activeCharm = useMemo(() => charms.find((item) => item.id === activeCharmId) || charms[0], [activeCharmId]);
   const recommendedCharm = useMemo(() => charms.find((item) => item.id === recommendedCharmId) || charms[0], [recommendedCharmId]);
   const activeBg = useMemo(() => backgrounds.find((item) => item.id === activeBgId) || backgrounds[0], [activeBgId]);
   const activeCharacter = useMemo(() => characters.find((item) => item.id === activeCharacterId) || characters[0], [activeCharacterId]);
   const activeTextColor = useMemo(() => textColors.find((item) => item.id === activeTextColorId) || textColors[0], [activeTextColorId]);
-  const selfTests = useMemo(() => runSelfTests(), []);
-  const hasFailedTests = selfTests.some((test) => !test.pass);
   const activeFortune = fortunes[activeFortuneTabId] || fortunes.total;
   const activeFortuneTab = fortuneTabs.find((tab) => tab.id === activeFortuneTabId) || fortuneTabs[0];
   const formattedNow = useMemo(() => formatKoreanDateTime(now), [now]);
@@ -446,10 +350,19 @@ export default function PayboocLuckyCharmMobileWeb() {
     return () => window.clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all(characters.map(async (character) => [character.id, await imageToDataUrl(character.image)])).then((entries) => {
+      if (!cancelled) setCharacterDataUrls(Object.fromEntries(entries));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const toggleSticker = (id) => {
     setSelectedStickerIds((prev) => {
-      const willRemove = prev.includes(id);
-      if (willRemove) {
+      if (prev.includes(id)) {
         setStickerPositions((positions) => {
           const next = { ...positions };
           delete next[id];
@@ -458,121 +371,145 @@ export default function PayboocLuckyCharmMobileWeb() {
         return prev.filter((item) => item !== id);
       }
 
-      setStickerPositions((positions) => {
-        if (positions[id]) return positions;
-        const usedSlots = new Set(Object.values(positions).map((pos) => `${Math.round(pos.left)}-${Math.round(pos.top)}`));
-        const fallbackSlot = DEFAULT_STICKER_SLOTS.find((slot) => !usedSlots.has(`${slot.left}-${slot.top}`)) || DEFAULT_STICKER_SLOTS[prev.length % DEFAULT_STICKER_SLOTS.length];
-        return {
-          ...positions,
-          [id]: { left: fallbackSlot.left, top: fallbackSlot.top },
-        };
-      });
-
+      setStickerPositions((positions) => ({
+        ...positions,
+        [id]: positions[id] || getStickerDefaultPosition(id, prev.length),
+      }));
       return [...prev, id];
     });
   };
 
-  const handleStickerDragEnd = (id, deltaX, deltaY) => {
-    setStickerPositions((prev) => {
-      const current = prev[id] || DEFAULT_STICKER_SLOTS[0];
-      return {
-        ...prev,
-        [id]: {
-          left: clamp(current.left + deltaX, STICKER_DRAG_LIMITS.minLeft, STICKER_DRAG_LIMITS.maxLeft),
-          top: clamp(current.top + deltaY, STICKER_DRAG_LIMITS.minTop, STICKER_DRAG_LIMITS.maxTop),
-        },
+  const onDragStart = (event, kind, id) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const svg = event.currentTarget.ownerSVGElement;
+    if (!svg) return;
+    const point = svgPointFromEvent(svg, event);
+    const startPosition = kind === "character" ? characterPosition : stickerPositions[id] || { x: point.x, y: point.y };
+    dragRef.current = {
+      kind,
+      id,
+      svg,
+      startPointer: point,
+      startPosition,
+    };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
+
+  useEffect(() => {
+    const handlePointerMove = (event) => {
+      const drag = dragRef.current;
+      if (!drag) return;
+      const point = svgPointFromEvent(drag.svg, event);
+      const dx = point.x - drag.startPointer.x;
+      const dy = point.y - drag.startPointer.y;
+      const next = {
+        x: drag.startPosition.x + dx,
+        y: drag.startPosition.y + dy,
       };
-    });
-  };
 
-  const handleCharacterDragEnd = (deltaX, deltaY) => {
-    setCharacterOffsetX((prev) => clamp(prev + deltaX, CHARACTER_SIZE_LIMITS.minOffsetX, CHARACTER_SIZE_LIMITS.maxOffsetX));
-    setCharacterOffsetY((prev) => clamp(prev + deltaY, CHARACTER_SIZE_LIMITS.minOffsetY, CHARACTER_SIZE_LIMITS.maxOffsetY));
-  };
+      if (drag.kind === "character") {
+        setCharacterPosition({ x: clamp(next.x, 75, 235), y: clamp(next.y, 205, 340) });
+      } else {
+        setStickerPositions((prev) => ({
+          ...prev,
+          [drag.id]: { x: clamp(next.x, 25, 285), y: clamp(next.y, 175, 370) },
+        }));
+      }
+    };
 
-  const resetCharacterPosition = () => {
+    const handlePointerUp = () => {
+      dragRef.current = null;
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener("pointercancel", handlePointerUp);
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerUp);
+    };
+  }, [characterPosition, stickerPositions]);
+
+  const resetCharacter = () => {
     setCharacterScale(1);
-    setCharacterOffsetX(0);
-    setCharacterOffsetY(20);
+    setCharacterPosition({ x: 155, y: 270 });
   };
 
   const saveCharmImage = async () => {
-    const target = charmCardRef.current;
-
-    if (!target) {
+    const svg = svgWrapRef.current?.querySelector('[data-charm-svg="true"]');
+    if (!svg) {
       setSaveStatus("저장할 부적을 찾지 못했어요. 다시 시도해주세요.");
       return;
     }
 
     try {
-      setSaveStatus("화면과 최대한 같게 이미지를 만드는 중이에요...");
-
-      if (document.fonts?.ready) {
-        await document.fonts.ready;
-      }
-      await waitForImagesToLoad(target);
-      await new Promise((resolve) => requestAnimationFrame(resolve));
-      await new Promise((resolve) => requestAnimationFrame(resolve));
-
-      const rect = target.getBoundingClientRect();
-
-      const canvas = await html2canvas(target, {
-        backgroundColor: null,
-        width: Math.round(rect.width),
-        height: Math.round(rect.height),
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        scrollX: 0,
-        scrollY: 0,
-        windowWidth: document.documentElement.clientWidth,
-        windowHeight: document.documentElement.clientHeight,
-        onclone: (clonedDocument) => {
-          const clonedCard = clonedDocument.querySelector('[data-capture-card="true"]');
-          if (clonedCard) {
-            clonedCard.style.width = `${Math.round(rect.width)}px`;
-            clonedCard.style.maxWidth = `${Math.round(rect.width)}px`;
-            clonedCard.style.minWidth = `${Math.round(rect.width)}px`;
-            clonedCard.style.height = "auto";
-            clonedCard.style.margin = "0";
-            clonedCard.style.boxSizing = "border-box";
+      setSaveStatus("이미지를 저장하는 중이에요...");
+      const dataUrl = svgToDataUrl(svg);
+      const image = new Image();
+      image.decoding = "async";
+      image.onload = () => {
+        const scale = 3;
+        const canvas = document.createElement("canvas");
+        canvas.width = CARD_W * scale;
+        canvas.height = CARD_H * scale;
+        const context = canvas.getContext("2d");
+        context.fillStyle = "rgba(255,255,255,0)";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            setSaveStatus("이미지 생성에 실패했어요. 다시 시도해주세요.");
+            return;
           }
-        },
-      });
+          const fileName = `paybooc-lucky-charm-${activeCharm.id}.png`;
+          const file = new File([blob], fileName, { type: "image/png" });
 
-      const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
-      if (!blob) throw new Error("이미지 생성에 실패했습니다.");
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            navigator
+              .share({ files: [file], title: "오늘의 행운 부적", text: `${OFFICIAL_TAG} 태그하고 오늘의 행운 부적 이벤트에 참여해보세요!` })
+              .then(() => setSaveStatus("공유 화면이 열렸어요. 인스타그램 스토리에 올릴 때 @bccard_official을 태그해주세요."))
+              .catch(() => setSaveStatus("공유가 취소됐어요. 저장 버튼을 다시 눌러주세요."));
+            return;
+          }
 
-      const fileName = `paybooc-lucky-charm-${activeCharm.id}.png`;
-      const file = new File([blob], fileName, { type: "image/png" });
-
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: "오늘의 행운 부적",
-          text: `${OFFICIAL_TAG} 태그하고 오늘의 행운 부적 이벤트에 참여해보세요!`,
-        });
-
-        setSaveStatus("공유 화면이 열렸어요. 인스타그램 스토리에 올릴 때 @bccard_official을 태그해주세요.");
-        return;
-      }
-
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-
-      setSaveStatus("현재 화면에 보이는 카드 모습 기준으로 저장됐어요.");
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = fileName;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          URL.revokeObjectURL(url);
+          setSaveStatus("부적 이미지가 저장/다운로드됐어요.");
+        }, "image/png");
+      };
+      image.onerror = () => setSaveStatus("이미지를 불러오지 못했어요. 캐릭터 이미지 경로를 확인해주세요.");
+      image.src = dataUrl;
     } catch (error) {
       console.error(error);
-      setSaveStatus("이미지 저장 중 문제가 생겼어요. 배포 링크에서 다시 테스트해주세요.");
+      setSaveStatus("이미지 저장 중 문제가 생겼어요. 다시 시도해주세요.");
     }
   };
+
+  const charmPreview = (editable = false) => (
+    <div ref={editable ? undefined : svgWrapRef} className="mx-auto w-full max-w-[310px]">
+      <CharmSvg
+        charm={activeCharm}
+        background={activeBg}
+        textColor={activeTextColor}
+        character={activeCharacter}
+        characterDataUrl={characterDataUrls[activeCharacter.id]}
+        characterScale={characterScale}
+        characterPosition={characterPosition}
+        selectedStickerIds={selectedStickerIds}
+        stickerPositions={stickerPositions}
+        editable={editable}
+        onDragStart={onDragStart}
+      />
+    </div>
+  );
 
   return (
     <main className="min-h-screen bg-neutral-100 text-[#151515]">
@@ -613,17 +550,6 @@ export default function PayboocLuckyCharmMobileWeb() {
               <p className="mt-4 text-sm leading-relaxed text-white/65">행운 부적 굿즈 QR을 찍고 들어온 유저가 운세 결과를 바탕으로 부적을 받고, 스티커로 꾸민 뒤 인스타그램 스토리에 공유할 수 있어요.</p>
               <button onClick={() => setScreen("select")} className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#E6002D] px-5 py-4 font-black text-white">오늘의 행운 부적 받기 <ArrowIcon className="h-5 w-5" /></button>
             </section>
-
-            <section className="mt-6">
-              <h3 className="mb-3 text-xl font-black">이렇게 참여해요</h3>
-              <div className="grid gap-3">
-                {["운세 확인", "부적 선택", "캐릭터 선택", "스티커로 부꾸", "스토리 저장/공유"].map((item, index) => (
-                  <div key={item} className="flex items-center gap-3 rounded-2xl bg-neutral-50 p-4"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-black text-sm font-black text-white">{index + 1}</span><span className="font-bold">{item}</span></div>
-                ))}
-              </div>
-            </section>
-
-            {hasFailedTests && <section className="mt-6 rounded-2xl border border-yellow-200 bg-yellow-50 p-4 text-xs font-bold text-yellow-800">데이터 설정을 확인해주세요. 부적, 캐릭터, 스티커, 배경 중 일부가 누락되었을 수 있습니다.</section>}
           </motion.section>
         )}
 
@@ -647,8 +573,12 @@ export default function PayboocLuckyCharmMobileWeb() {
 
         {screen === "custom" && (
           <motion.section initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="px-5 pb-32 pt-5">
-            <div className="mb-5 flex items-end justify-between"><div><p className="text-sm font-black text-[#E6002D]">CHARM PREVIEW</p><h2 className="mt-1 text-2xl font-black">부적 꾸미기</h2></div><button onClick={() => setScreen("share")} className="rounded-full bg-black px-4 py-2 text-xs font-black text-white">완료</button></div>
-            <CharmCard charm={activeCharm} background={activeBg} textColor={activeTextColor} character={activeCharacter} characterScale={characterScale} characterOffsetX={characterOffsetX} characterOffsetY={characterOffsetY} selectedStickerIds={selectedStickerIds} stickerPositions={stickerPositions} draggableCharacter onCharacterDragEnd={handleCharacterDragEnd} draggableStickers onStickerDragEnd={handleStickerDragEnd} />
+            <div className="mb-5 flex items-end justify-between">
+              <div><p className="text-sm font-black text-[#E6002D]">CHARM PREVIEW</p><h2 className="mt-1 text-2xl font-black">부적 꾸미기</h2></div>
+              <button onClick={() => setScreen("share")} className="rounded-full bg-black px-4 py-2 text-xs font-black text-white">완료</button>
+            </div>
+
+            {charmPreview(true)}
 
             <section className="mt-6">
               <div className="mb-3 flex items-center justify-between"><h3 className="text-lg font-black">캐릭터 선택</h3><p className="text-xs font-bold text-neutral-400">페이 · 부기 · 호야</p></div>
@@ -663,9 +593,8 @@ export default function PayboocLuckyCharmMobileWeb() {
             </section>
 
             <section className="mt-6 rounded-[1.5rem] bg-neutral-50 p-4">
-              <div className="mb-4 flex items-center justify-between"><div><h3 className="text-lg font-black">캐릭터 크기 조절</h3><p className="mt-1 text-xs font-bold text-neutral-400">위치는 부적 안 캐릭터를 손으로 끌어서 움직여요</p></div><button onClick={resetCharacterPosition} className="rounded-full bg-white px-3 py-1 text-xs font-black text-neutral-500">초기화</button></div>
-              <label className="block text-xs font-black text-neutral-500">크기</label>
-              <div className="mt-2 flex items-center gap-3"><span className="text-xs font-bold text-neutral-400">작게</span><input type="range" min={CHARACTER_SIZE_LIMITS.minScale} max={CHARACTER_SIZE_LIMITS.maxScale} step="0.05" value={characterScale} onChange={(event) => setCharacterScale(Number(event.target.value))} className="w-full accent-[#E6002D]" /><span className="text-xs font-bold text-neutral-400">크게</span></div>
+              <div className="mb-4 flex items-center justify-between"><h3 className="text-lg font-black">캐릭터 크기</h3><button onClick={resetCharacter} className="rounded-full bg-white px-3 py-1 text-xs font-black text-neutral-500">초기화</button></div>
+              <div className="mt-2 flex items-center gap-3"><span className="text-xs font-bold text-neutral-400">작게</span><input type="range" min="0.75" max="1.5" step="0.05" value={characterScale} onChange={(event) => setCharacterScale(Number(event.target.value))} className="w-full accent-[#E6002D]" /><span className="text-xs font-bold text-neutral-400">크게</span></div>
             </section>
 
             <section className="mt-6">
@@ -679,14 +608,8 @@ export default function PayboocLuckyCharmMobileWeb() {
             </section>
 
             <section className="mt-6">
-              <div className="mb-3 flex items-center justify-between"><h3 className="text-lg font-black">스티커 선택</h3><p className="text-xs font-bold text-neutral-400">개수 제한 없음 · 드래그 이동</p></div>
-              <div className="grid grid-cols-3 gap-2">{stickerOptions.map((sticker) => <button key={sticker.id} onClick={() => toggleSticker(sticker.id)} className={`flex min-h-[74px] items-center justify-center rounded-2xl border-2 bg-white p-2 ${selectedStickerIds.includes(sticker.id) ? "border-[#E6002D] ring-4 ring-[#E6002D]/10" : "border-neutral-200"}`}><Sticker sticker={sticker} small /></button>)}</div>
-              {selectedStickerIds.length > 0 && (
-                <div className="mt-4 rounded-2xl bg-neutral-50 p-3">
-                  <div className="mb-2 flex items-center justify-between"><p className="text-sm font-black">선택한 스티커</p><button onClick={() => { setSelectedStickerIds([]); setStickerPositions({}); }} className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#E6002D]">휴지통 비우기</button></div>
-                  <div className="flex flex-wrap gap-2">{selectedStickerIds.map((id, index) => { const sticker = stickerOptions.find((item) => item.id === id); if (!sticker) return null; return <button key={`${id}-${index}`} onClick={() => { setSelectedStickerIds((prev) => prev.filter((_, i) => i !== index)); setStickerPositions((prev) => { const next = { ...prev }; delete next[id]; return next; }); }} className="flex items-center gap-1 rounded-full border border-neutral-200 bg-white px-3 py-2 text-xs font-bold"><Sticker sticker={sticker} small /><span className="text-[#E6002D]">🗑️</span></button>; })}</div>
-                </div>
-              )}
+              <div className="mb-3 flex items-center justify-between"><h3 className="text-lg font-black">스티커 선택</h3><p className="text-xs font-bold text-neutral-400">선택 후 부적 위에서 드래그</p></div>
+              <div className="grid grid-cols-3 gap-2">{stickerOptions.map((sticker) => <button key={sticker.id} onClick={() => toggleSticker(sticker.id)} className={`flex min-h-[74px] items-center justify-center rounded-2xl border-2 bg-white p-2 ${selectedStickerIds.includes(sticker.id) ? "border-[#E6002D] ring-4 ring-[#E6002D]/10" : "border-neutral-200"}`}><span className="text-xs font-black">{sticker.text}</span></button>)}</div>
             </section>
           </motion.section>
         )}
@@ -696,7 +619,7 @@ export default function PayboocLuckyCharmMobileWeb() {
             <p className="text-sm font-black text-[#E6002D]">READY TO SHARE</p>
             <h2 className="mt-2 text-3xl font-black">이제 스토리에 올리면 끝!</h2>
             <p className="mt-2 text-sm leading-relaxed text-neutral-500">완성된 행운 부적을 저장하고 인스타그램 스토리에 공유해보세요. 스토리에 @bccard_official을 태그하면 응모 확인이 더 쉬워져요.</p>
-            <div className="mt-6"><CharmCard charm={activeCharm} background={activeBg} textColor={activeTextColor} character={activeCharacter} characterScale={characterScale} characterOffsetX={characterOffsetX} characterOffsetY={characterOffsetY} selectedStickerIds={selectedStickerIds} stickerPositions={stickerPositions} captureRef={charmCardRef} /></div>
+            <div className="mt-6">{charmPreview(false)}</div>
             <div className="mt-6 grid gap-3">
               <button onClick={saveCharmImage} className="flex items-center justify-center gap-2 rounded-2xl bg-black px-5 py-4 font-black text-white">부적 이미지 저장하기 <DownloadIcon className="h-5 w-5" /></button>
               <button onClick={() => window.open(INSTAGRAM_URL, "_blank", "noopener,noreferrer")} className="rounded-2xl bg-[#E6002D] px-5 py-4 font-black text-white">@bccard_official 태그하고 공유하기</button>
@@ -715,11 +638,6 @@ export default function PayboocLuckyCharmMobileWeb() {
                   <input value={entryForm.name} onChange={(event) => setEntryForm((prev) => ({ ...prev, name: event.target.value }))} placeholder="이름 입력" className="mt-2 w-full rounded-2xl bg-white px-4 py-3 text-sm font-bold outline-none" />
                   <label className="mt-4 block text-xs font-black text-neutral-500">전화번호</label>
                   <input value={entryForm.phone} onChange={(event) => setEntryForm((prev) => ({ ...prev, phone: event.target.value }))} placeholder="010-0000-0000" className="mt-2 w-full rounded-2xl bg-white px-4 py-3 text-sm font-bold outline-none" />
-                  <div className="mt-4 rounded-2xl bg-white p-3 text-[11px] font-bold leading-relaxed text-neutral-500">
-                    <p>· 인당 하나의 인스타그램 계정으로만 참여할 수 있습니다.</p>
-                    <p>· 비공개 계정은 스토리 태그 확인이 어려워 참여가 제한됩니다.</p>
-                    <p>· 스토리 캡처본, 아이디, 이름, 전화번호는 이벤트 참여 확인 및 당첨 안내 목적으로만 사용됩니다.</p>
-                  </div>
                   <button onClick={() => setSaveStatus("응모 정보가 입력됐어요. 실제 운영 시에는 이 정보를 서버 또는 구글폼으로 전송하면 됩니다.")} className="mt-4 w-full rounded-2xl bg-[#E6002D] px-5 py-4 font-black text-white">페이북 포인트 응모 제출</button>
                 </div>
               )}
