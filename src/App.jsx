@@ -81,7 +81,26 @@ const stickerOptions = [
 ];
 
 const CHARACTER_SIZE_LIMITS = { minScale: 0.8, maxScale: 1.45, minOffsetX: -90, maxOffsetX: 90, minOffsetY: -60, maxOffsetY: 80 };
-const STICKER_DRAG_LIMITS = { minX: -120, maxX: 120, minY: -160, maxY: 160 };
+const STICKER_DRAG_LIMITS = { minLeft: 0, maxLeft: 210, minTop: 0, maxTop: 220 };
+const DEFAULT_STICKER_SLOTS = [
+  { left: 150, top: 18 },
+  { left: 196, top: 112 },
+  { left: 18, top: 160 },
+  { left: 190, top: 172 },
+  { left: 16, top: 24 },
+  { left: 176, top: 54 },
+  { left: 60, top: 12 },
+  { left: 136, top: 172 },
+  { left: 64, top: 144 },
+  { left: 152, top: 6 },
+  { left: 20, top: 96 },
+  { left: 176, top: 196 },
+];
+const INITIAL_STICKER_POSITIONS = {
+  s3: { left: 150, top: 18 },
+  s9: { left: 188, top: 86 },
+  s10: { left: 16, top: 166 },
+};
 const screens = ["home", "select", "custom", "share"];
 const OFFICIAL_TAG = "@bccard_official";
 const INSTAGRAM_URL = "https://www.instagram.com/bccard_official?igsh=bHpwendvOW85Mm1i";
@@ -160,157 +179,41 @@ function Sticker({ sticker, small = false }) {
   const baseStyle = {
     fontSize: small ? "10px" : "12px",
     padding: small ? "4px 8px" : "8px 12px",
-    lineHeight: "1.2",
-    boxSizing: "border-box",
+    lineHeight: 1.15,
     whiteSpace: "nowrap",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    textAlign: "center",
+    boxSizing: "border-box",
   };
 
   if (sticker.type === "emoji") {
-    return <div style={{ fontSize: small ? "24px" : "30px", lineHeight: 1 }}>{sticker.text}</div>;
+    return <div style={{ fontSize: small ? "24px" : "30px", lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{sticker.text}</div>;
   }
 
   if (sticker.type === "burst") {
-    return (
-      <div
-        style={{
-          ...baseStyle,
-          transform: "rotate(-5deg)",
-          border: "2px solid #F87171",
-          backgroundColor: "#FEF3C7",
-          color: "#EF4444",
-          fontWeight: 900,
-        }}
-      >
-        {sticker.text}
-      </div>
-    );
+    return <div style={{ ...baseStyle, transform: "rotate(-5deg)", border: "2px solid #F87171", backgroundColor: "#FEF3C7", color: "#EF4444", fontWeight: 900, minHeight: small ? 28 : 36 }}>{sticker.text}</div>;
   }
-
   if (sticker.type === "heart") {
-    return (
-      <div
-        style={{
-          ...baseStyle,
-          borderRadius: "48%",
-          border: "2px solid #111111",
-          backgroundColor: "#FCE7F3",
-          color: "#262626",
-          textAlign: "center",
-          fontWeight: 700,
-        }}
-      >
-        {sticker.text}
-      </div>
-    );
+    return <div style={{ ...baseStyle, borderRadius: "999px", border: "2px solid #111111", backgroundColor: "#FCE7F3", color: "#262626", fontWeight: 700, minHeight: small ? 28 : 36 }}>{sticker.text}</div>;
   }
-
   if (sticker.type === "pill") {
-    return (
-      <div
-        style={{
-          ...baseStyle,
-          borderRadius: "999px",
-          border: "2px solid #F87171",
-          backgroundColor: "#FEFCE8",
-          color: "#EF4444",
-          textAlign: "center",
-          fontWeight: 900,
-        }}
-      >
-        🙏 {sticker.text}
-      </div>
-    );
+    return <div style={{ ...baseStyle, borderRadius: "999px", border: "2px solid #F87171", backgroundColor: "#FEFCE8", color: "#EF4444", fontWeight: 900, minHeight: small ? 28 : 36 }}>🙏 {sticker.text}</div>;
   }
-
   if (sticker.type === "cloud") {
-    return (
-      <div
-        style={{
-          ...baseStyle,
-          borderRadius: "2rem",
-          border: "2px solid #111111",
-          backgroundColor: "#ECFEFF",
-          color: "#262626",
-          textAlign: "center",
-          fontWeight: 700,
-        }}
-      >
-        {sticker.text}
-      </div>
-    );
+    return <div style={{ ...baseStyle, borderRadius: "2rem", border: "2px solid #111111", backgroundColor: "#ECFEFF", color: "#262626", fontWeight: 700, minHeight: small ? 28 : 36 }}>{sticker.text}</div>;
   }
-
   if (sticker.type === "speech") {
-    return (
-      <div
-        style={{
-          ...baseStyle,
-          borderRadius: "999px",
-          border: "2px solid #111111",
-          backgroundColor: "#FFFFFF",
-          color: "#262626",
-          textAlign: "center",
-          fontWeight: 700,
-        }}
-      >
-        {sticker.text}
-      </div>
-    );
+    return <div style={{ ...baseStyle, borderRadius: "999px", border: "2px solid #111111", backgroundColor: "#FFFFFF", color: "#262626", fontWeight: 700, minHeight: small ? 28 : 36 }}>{sticker.text}</div>;
   }
-
   if (sticker.type === "zigzag") {
-    return (
-      <div
-        style={{
-          ...baseStyle,
-          border: "2px solid #111111",
-          backgroundColor: "#FFFFFF",
-          color: "#171717",
-          textAlign: "center",
-          fontWeight: 900,
-        }}
-      >
-        {sticker.text}
-      </div>
-    );
+    return <div style={{ ...baseStyle, border: "2px solid #111111", backgroundColor: "#FFFFFF", color: "#171717", fontWeight: 900, minHeight: small ? 28 : 36 }}>{sticker.text}</div>;
   }
-
   if (sticker.type === "vertical") {
-    return (
-      <div
-        style={{
-          borderRadius: "4px",
-          border: "2px solid #111111",
-          backgroundColor: "#F0FDF4",
-          color: "#171717",
-          padding: "8px 6px",
-          textAlign: "center",
-          fontSize: "10px",
-          fontWeight: 700,
-          lineHeight: "1.2",
-          writingMode: "vertical-rl",
-          boxSizing: "border-box",
-        }}
-      >
-        {sticker.text}
-      </div>
-    );
+    return <div style={{ borderRadius: "4px", border: "2px solid #111111", backgroundColor: "#F0FDF4", color: "#171717", padding: "8px 6px", textAlign: "center", fontSize: "10px", fontWeight: 700, lineHeight: 1.2, writingMode: "vertical-rl", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{sticker.text}</div>;
   }
-
-  return (
-    <div
-      style={{
-        ...baseStyle,
-        border: "2px solid #22C55E",
-        backgroundColor: "#FFFFFF",
-        color: "#16A34A",
-        textAlign: "center",
-        fontWeight: 700,
-      }}
-    >
-      {sticker.text}
-    </div>
-  );
+  return <div style={{ ...baseStyle, border: "2px solid #22C55E", backgroundColor: "#FFFFFF", color: "#16A34A", fontWeight: 700, minHeight: small ? 28 : 36 }}>{sticker.text}</div>;
 }
 
 function CharacterImage({
@@ -323,35 +226,45 @@ function CharacterImage({
 }) {
   const [hasError, setHasError] = useState(false);
 
-  const wrapperClassName = `mx-auto flex h-44 w-44 items-center justify-center ${draggable ? "cursor-grab touch-none active:cursor-grabbing" : ""}`;
-  const wrapperStyle = {
-    x: characterOffsetX,
-    y: characterOffsetY,
-    scale: characterScale,
+  const inner = hasError ? (
+    <div className="flex h-40 w-40 items-center justify-center rounded-full text-6xl shadow-sm" style={{ backgroundColor: "rgba(255,255,255,0.6)" }}>
+      {character.fallback}
+    </div>
+  ) : (
+    <img src={character.image} alt={`${character.name} 캐릭터`} onError={() => setHasError(true)} className="h-44 w-44 object-contain drop-shadow-md" draggable={false} />
+  );
+
+  const boxStyle = {
+    position: "absolute",
+    left: "50%",
+    top: "50%",
+    width: "176px",
+    height: "176px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: draggable ? "grab" : "default",
+    touchAction: "none",
+    zIndex: 12,
+    transform: `translate(-50%, -50%) translate(${characterOffsetX}px, ${characterOffsetY}px) scale(${characterScale})`,
+    transformOrigin: "center center",
   };
 
-  const handleDragEnd = (_, info) => {
-    if (!onCharacterDragEnd) return;
-    onCharacterDragEnd(info.offset.x, info.offset.y);
-  };
+  if (!draggable) {
+    return <div style={boxStyle}>{inner}</div>;
+  }
 
   return (
     <motion.div
-      drag={draggable}
+      drag
       dragMomentum={false}
       dragElastic={0}
-      whileDrag={draggable ? { scale: characterScale * 1.04, zIndex: 25 } : undefined}
-      onDragEnd={handleDragEnd}
-      className={wrapperClassName}
-      style={wrapperStyle}
+      whileDrag={{ scale: 1.03, zIndex: 25 }}
+      onDragEnd={(_, info) => onCharacterDragEnd?.(info.offset.x, info.offset.y)}
+      style={boxStyle}
+      className="touch-none active:cursor-grabbing"
     >
-      {hasError ? (
-        <div className="flex h-40 w-40 items-center justify-center rounded-full text-6xl shadow-sm" style={{ backgroundColor: "rgba(255,255,255,0.6)" }}>
-          {character.fallback}
-        </div>
-      ) : (
-        <img src={character.image} alt={`${character.name} 캐릭터`} onError={() => setHasError(true)} className="h-44 w-44 object-contain drop-shadow-md" />
-      )}
+      {inner}
     </motion.div>
   );
 }
@@ -374,8 +287,41 @@ function CharmCard({
 }) {
   const selectedStickers = selectedStickerIds.map((id) => stickerOptions.find((item) => item.id === id)).filter(Boolean);
 
+  const renderSticker = (sticker, index) => {
+    const fallbackSlot = DEFAULT_STICKER_SLOTS[index % DEFAULT_STICKER_SLOTS.length];
+    const savedPosition = stickerPositions[sticker.id] || fallbackSlot;
+    const stickerNode = <Sticker sticker={sticker} small />;
+
+    const commonStyle = {
+      position: "absolute",
+      left: `${savedPosition.left}px`,
+      top: `${savedPosition.top}px`,
+      zIndex: 20,
+      touchAction: "none",
+    };
+
+    if (!draggableStickers) {
+      return <div key={`${sticker.id}-${index}`} style={commonStyle}>{stickerNode}</div>;
+    }
+
+    return (
+      <motion.div
+        key={`${sticker.id}-${index}`}
+        drag
+        dragMomentum={false}
+        dragElastic={0}
+        whileDrag={{ scale: 1.06, rotate: 2, zIndex: 30 }}
+        onDragEnd={(_, info) => onStickerDragEnd?.(sticker.id, info.offset.x, info.offset.y)}
+        style={commonStyle}
+        className="cursor-grab touch-none active:cursor-grabbing"
+      >
+        {stickerNode}
+      </motion.div>
+    );
+  };
+
   return (
-    <div ref={captureRef} data-capture-card="true" className="relative mx-auto flex aspect-[9/16] w-full max-w-[310px] flex-col overflow-hidden rounded-[2rem] border-[3px] p-4 shadow-xl" style={{ backgroundColor: background.bg, borderColor: background.border, color: "#151515" }}>
+    <div ref={captureRef} data-capture-card="true" className="relative mx-auto w-full max-w-[310px] overflow-hidden rounded-[2rem] border-[3px] p-4 shadow-xl" style={{ backgroundColor: background.bg, borderColor: background.border, color: "#151515", boxSizing: "border-box" }}>
       <div className="absolute inset-2 rounded-[1.6rem] border-2 opacity-70" style={{ borderColor: background.border }} />
       <div className="absolute -left-10 top-20 h-44 w-44 rounded-full blur-3xl" style={{ backgroundColor: "rgba(255,255,255,0.3)" }} />
       <div className="absolute -right-10 bottom-24 h-44 w-44 rounded-full blur-3xl" style={{ backgroundColor: "rgba(255,255,255,0.3)" }} />
@@ -388,41 +334,22 @@ function CharmCard({
         <h2 className="mt-2 text-2xl font-black tracking-tight" style={{ color: textColor.value }}>{charm.title}</h2>
       </div>
 
-      <div className="relative z-10 my-3 flex flex-1 items-center justify-center rounded-[1.65rem] p-3 pt-8" style={{ backgroundColor: "rgba(255,255,255,0.35)", color: "#151515" }}>
+      <div className="relative z-10 mt-3 rounded-[1.65rem] p-3 pt-8" style={{ minHeight: "290px", backgroundColor: "rgba(255,255,255,0.35)", color: "#151515" }}>
         <CharacterImage character={character} characterScale={characterScale} characterOffsetX={characterOffsetX} characterOffsetY={characterOffsetY} draggable={draggableCharacter} onCharacterDragEnd={onCharacterDragEnd} />
         <div className="absolute left-4 top-5 text-base" style={{ color: "#151515" }}>✦</div>
         <div className="absolute right-5 top-14 text-base" style={{ color: "#151515" }}>✦</div>
         <div className="absolute left-4 bottom-12 text-lg">☁️</div>
         <div className="absolute right-4 bottom-16 text-lg">☁️</div>
-
-        {selectedStickers.map((sticker, index) => {
-          const positions = ["absolute left-1 top-2", "absolute right-1 top-20", "absolute left-2 bottom-8", "absolute right-2 bottom-1", "absolute left-1 top-28", "absolute right-3 bottom-20", "absolute left-12 top-12", "absolute right-12 bottom-10", "absolute left-10 bottom-24", "absolute right-8 top-4", "absolute left-4 top-20", "absolute right-4 bottom-32"];
-          const position = positions[index % positions.length];
-          const savedPosition = stickerPositions[sticker.id] || { x: 0, y: 0 };
-          return (
-            <motion.div
-              key={`${sticker.id}-${index}`}
-              drag={draggableStickers}
-              dragMomentum={false}
-              dragElastic={0}
-              whileDrag={draggableStickers ? { scale: 1.08, rotate: 2, zIndex: 30 } : undefined}
-              onDragEnd={(_, info) => onStickerDragEnd?.(sticker.id, info.offset.x, info.offset.y)}
-              className={`${position} z-20 ${draggableStickers ? "cursor-grab touch-none active:cursor-grabbing" : ""}`}
-              style={{ x: savedPosition.x, y: savedPosition.y }}
-            >
-              <Sticker sticker={sticker} small />
-            </motion.div>
-          );
-        })}
+        {selectedStickers.map((sticker, index) => renderSticker(sticker, index))}
       </div>
 
-      <div className="relative z-10 rounded-2xl border-2 px-3 py-3 text-center" style={{ borderColor: background.border, backgroundColor: "rgba(255,255,255,0.65)", color: "#151515" }}>
+      <div className="relative z-10 mt-4 rounded-2xl border-2 px-3 py-4 text-center" style={{ borderColor: background.border, backgroundColor: "rgba(255,255,255,0.65)", color: "#151515" }}>
         <p className="text-4xl font-black" style={{ color: textColor.value }}>{charm.score}</p>
         <p className="mt-1 text-xs font-semibold" style={{ color: "#404040" }}>{charm.sub}</p>
         <p className="mt-2 rounded-full px-3 py-2 text-[11px] font-bold" style={{ backgroundColor: "rgba(255,255,255,0.7)", color: "#404040" }}>{charm.advice}</p>
       </div>
 
-      <div className="relative z-10 mx-2 mt-3 flex items-center justify-center rounded-full px-3 py-2 text-[10px] font-bold backdrop-blur-sm" style={{ backgroundColor: "rgba(255,255,255,0.5)", color: "#737373" }}>
+      <div className="relative z-10 mx-2 mt-4 flex items-center justify-center rounded-full px-3 py-2 text-[10px] font-bold backdrop-blur-sm" style={{ backgroundColor: "rgba(255,255,255,0.5)", color: "#737373" }}>
         <span>BC카드 · 페이북 · {OFFICIAL_TAG}</span>
       </div>
     </div>
@@ -490,7 +417,7 @@ export default function PayboocLuckyCharmMobileWeb() {
   const [characterOffsetX, setCharacterOffsetX] = useState(0);
   const [characterOffsetY, setCharacterOffsetY] = useState(20);
   const [selectedStickerIds, setSelectedStickerIds] = useState(["s3", "s9", "s10"]);
-  const [stickerPositions, setStickerPositions] = useState({});
+  const [stickerPositions, setStickerPositions] = useState(() => INITIAL_STICKER_POSITIONS);
   const [screen, setScreen] = useState("home");
   const [activeFortuneTabId, setActiveFortuneTabId] = useState("total");
   const [userName, setUserName] = useState("");
@@ -530,18 +457,29 @@ export default function PayboocLuckyCharmMobileWeb() {
         });
         return prev.filter((item) => item !== id);
       }
+
+      setStickerPositions((positions) => {
+        if (positions[id]) return positions;
+        const usedSlots = new Set(Object.values(positions).map((pos) => `${Math.round(pos.left)}-${Math.round(pos.top)}`));
+        const fallbackSlot = DEFAULT_STICKER_SLOTS.find((slot) => !usedSlots.has(`${slot.left}-${slot.top}`)) || DEFAULT_STICKER_SLOTS[prev.length % DEFAULT_STICKER_SLOTS.length];
+        return {
+          ...positions,
+          [id]: { left: fallbackSlot.left, top: fallbackSlot.top },
+        };
+      });
+
       return [...prev, id];
     });
   };
 
   const handleStickerDragEnd = (id, deltaX, deltaY) => {
     setStickerPositions((prev) => {
-      const current = prev[id] || { x: 0, y: 0 };
+      const current = prev[id] || DEFAULT_STICKER_SLOTS[0];
       return {
         ...prev,
         [id]: {
-          x: clamp(current.x + deltaX, STICKER_DRAG_LIMITS.minX, STICKER_DRAG_LIMITS.maxX),
-          y: clamp(current.y + deltaY, STICKER_DRAG_LIMITS.minY, STICKER_DRAG_LIMITS.maxY),
+          left: clamp(current.left + deltaX, STICKER_DRAG_LIMITS.minLeft, STICKER_DRAG_LIMITS.maxLeft),
+          top: clamp(current.top + deltaY, STICKER_DRAG_LIMITS.minTop, STICKER_DRAG_LIMITS.maxTop),
         },
       };
     });
@@ -567,52 +505,43 @@ export default function PayboocLuckyCharmMobileWeb() {
     }
 
     try {
-      setSaveStatus("화면 그대로 이미지를 만드는 중이에요...");
+      setSaveStatus("화면과 최대한 같게 이미지를 만드는 중이에요...");
 
       if (document.fonts?.ready) {
         await document.fonts.ready;
       }
-
       await waitForImagesToLoad(target);
-
-      // 드래그 위치, 이미지, 폰트 렌더링이 화면에 완전히 반영된 뒤 캡처합니다.
       await new Promise((resolve) => requestAnimationFrame(resolve));
       await new Promise((resolve) => requestAnimationFrame(resolve));
 
       const rect = target.getBoundingClientRect();
-      const captureWidth = Math.round(rect.width);
-      const captureHeight = Math.round(rect.height);
 
       const canvas = await html2canvas(target, {
         backgroundColor: null,
-        width: captureWidth,
-        height: captureHeight,
-        windowWidth: window.innerWidth,
-        windowHeight: window.innerHeight,
-        scrollX: -window.scrollX,
-        scrollY: -window.scrollY,
-        scale: window.devicePixelRatio || 2,
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
+        scale: 2,
         useCORS: true,
         allowTaint: true,
         logging: false,
-        foreignObjectRendering: false,
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: document.documentElement.clientWidth,
+        windowHeight: document.documentElement.clientHeight,
         onclone: (clonedDocument) => {
           const clonedCard = clonedDocument.querySelector('[data-capture-card="true"]');
-
           if (clonedCard) {
-            clonedCard.style.width = `${captureWidth}px`;
-            clonedCard.style.height = `${captureHeight}px`;
-            clonedCard.style.maxWidth = `${captureWidth}px`;
-            clonedCard.style.minWidth = `${captureWidth}px`;
+            clonedCard.style.width = `${Math.round(rect.width)}px`;
+            clonedCard.style.maxWidth = `${Math.round(rect.width)}px`;
+            clonedCard.style.minWidth = `${Math.round(rect.width)}px`;
+            clonedCard.style.height = "auto";
             clonedCard.style.margin = "0";
-            clonedCard.style.transform = "none";
             clonedCard.style.boxSizing = "border-box";
           }
         },
       });
 
       const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
-
       if (!blob) throw new Error("이미지 생성에 실패했습니다.");
 
       const fileName = `paybooc-lucky-charm-${activeCharm.id}.png`;
@@ -638,10 +567,10 @@ export default function PayboocLuckyCharmMobileWeb() {
       link.remove();
       URL.revokeObjectURL(url);
 
-      setSaveStatus("화면에 보이는 모습 그대로 이미지가 저장/다운로드됐어요.");
+      setSaveStatus("현재 화면에 보이는 카드 모습 기준으로 저장됐어요.");
     } catch (error) {
       console.error(error);
-      setSaveStatus("이미지 저장 중 문제가 생겼어요. StackBlitz 미리보기에서는 제한될 수 있으니 배포 링크에서 다시 테스트해주세요.");
+      setSaveStatus("이미지 저장 중 문제가 생겼어요. 배포 링크에서 다시 테스트해주세요.");
     }
   };
 
