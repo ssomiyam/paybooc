@@ -81,6 +81,7 @@ const stickerOptions = [
 ];
 
 const CHARACTER_SIZE_LIMITS = { minScale: 0.8, maxScale: 1.45, minOffsetX: -90, maxOffsetX: 90, minOffsetY: -60, maxOffsetY: 80 };
+const STICKER_DRAG_LIMITS = { minX: -120, maxX: 120, minY: -160, maxY: 160 };
 const screens = ["home", "select", "custom", "share"];
 const OFFICIAL_TAG = "@bccard_official";
 const INSTAGRAM_URL = "https://www.instagram.com/bccard_official?igsh=bHpwendvOW85Mm1i";
@@ -364,9 +365,12 @@ function CharmCard({
   characterOffsetX,
   characterOffsetY,
   selectedStickerIds,
+  stickerPositions = {},
   captureRef,
   draggableCharacter = false,
   onCharacterDragEnd,
+  draggableStickers = false,
+  onStickerDragEnd,
 }) {
   const selectedStickers = selectedStickerIds.map((id) => stickerOptions.find((item) => item.id === id)).filter(Boolean);
 
@@ -394,8 +398,18 @@ function CharmCard({
         {selectedStickers.map((sticker, index) => {
           const positions = ["absolute left-1 top-2", "absolute right-1 top-20", "absolute left-2 bottom-8", "absolute right-2 bottom-1", "absolute left-1 top-28", "absolute right-3 bottom-20", "absolute left-12 top-12", "absolute right-12 bottom-10", "absolute left-10 bottom-24", "absolute right-8 top-4", "absolute left-4 top-20", "absolute right-4 bottom-32"];
           const position = positions[index % positions.length];
+          const savedPosition = stickerPositions[sticker.id] || { x: 0, y: 0 };
           return (
-            <motion.div key={`${sticker.id}-${index}`} drag dragMomentum={false} whileDrag={{ scale: 1.08, rotate: 2, zIndex: 30 }} className={`${position} z-20 cursor-grab touch-none active:cursor-grabbing`}>
+            <motion.div
+              key={`${sticker.id}-${index}`}
+              drag={draggableStickers}
+              dragMomentum={false}
+              dragElastic={0}
+              whileDrag={draggableStickers ? { scale: 1.08, rotate: 2, zIndex: 30 } : undefined}
+              onDragEnd={(_, info) => onStickerDragEnd?.(sticker.id, info.offset.x, info.offset.y)}
+              className={`${position} z-20 ${draggableStickers ? "cursor-grab touch-none active:cursor-grabbing" : ""}`}
+              style={{ x: savedPosition.x, y: savedPosition.y }}
+            >
               <Sticker sticker={sticker} small />
             </motion.div>
           );
@@ -476,6 +490,7 @@ export default function PayboocLuckyCharmMobileWeb() {
   const [characterOffsetX, setCharacterOffsetX] = useState(0);
   const [characterOffsetY, setCharacterOffsetY] = useState(20);
   const [selectedStickerIds, setSelectedStickerIds] = useState(["s3", "s9", "s10"]);
+  const [stickerPositions, setStickerPositions] = useState({});
   const [screen, setScreen] = useState("home");
   const [activeFortuneTabId, setActiveFortuneTabId] = useState("total");
   const [userName, setUserName] = useState("");
@@ -505,7 +520,31 @@ export default function PayboocLuckyCharmMobileWeb() {
   }, []);
 
   const toggleSticker = (id) => {
-    setSelectedStickerIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
+    setSelectedStickerIds((prev) => {
+      const willRemove = prev.includes(id);
+      if (willRemove) {
+        setStickerPositions((positions) => {
+          const next = { ...positions };
+          delete next[id];
+          return next;
+        });
+        return prev.filter((item) => item !== id);
+      }
+      return [...prev, id];
+    });
+  };
+
+  const handleStickerDragEnd = (id, deltaX, deltaY) => {
+    setStickerPositions((prev) => {
+      const current = prev[id] || { x: 0, y: 0 };
+      return {
+        ...prev,
+        [id]: {
+          x: clamp(current.x + deltaX, STICKER_DRAG_LIMITS.minX, STICKER_DRAG_LIMITS.maxX),
+          y: clamp(current.y + deltaY, STICKER_DRAG_LIMITS.minY, STICKER_DRAG_LIMITS.maxY),
+        },
+      };
+    });
   };
 
   const handleCharacterDragEnd = (deltaX, deltaY) => {
@@ -548,9 +587,11 @@ export default function PayboocLuckyCharmMobileWeb() {
         backgroundColor: null,
         width: captureWidth,
         height: captureHeight,
-        windowWidth: document.documentElement.clientWidth,
-        windowHeight: document.documentElement.clientHeight,
-        scale: 3,
+        windowWidth: window.innerWidth,
+        windowHeight: window.innerHeight,
+        scrollX: -window.scrollX,
+        scrollY: -window.scrollY,
+        scale: window.devicePixelRatio || 2,
         useCORS: true,
         allowTaint: true,
         logging: false,
@@ -561,11 +602,10 @@ export default function PayboocLuckyCharmMobileWeb() {
           if (clonedCard) {
             clonedCard.style.width = `${captureWidth}px`;
             clonedCard.style.height = `${captureHeight}px`;
-            clonedCard.style.maxWidth = "none";
+            clonedCard.style.maxWidth = `${captureWidth}px`;
             clonedCard.style.minWidth = `${captureWidth}px`;
             clonedCard.style.margin = "0";
             clonedCard.style.transform = "none";
-            clonedCard.style.aspectRatio = "9 / 16";
             clonedCard.style.boxSizing = "border-box";
           }
         },
@@ -679,7 +719,7 @@ export default function PayboocLuckyCharmMobileWeb() {
         {screen === "custom" && (
           <motion.section initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="px-5 pb-32 pt-5">
             <div className="mb-5 flex items-end justify-between"><div><p className="text-sm font-black text-[#E6002D]">CHARM PREVIEW</p><h2 className="mt-1 text-2xl font-black">부적 꾸미기</h2></div><button onClick={() => setScreen("share")} className="rounded-full bg-black px-4 py-2 text-xs font-black text-white">완료</button></div>
-            <CharmCard charm={activeCharm} background={activeBg} textColor={activeTextColor} character={activeCharacter} characterScale={characterScale} characterOffsetX={characterOffsetX} characterOffsetY={characterOffsetY} selectedStickerIds={selectedStickerIds} draggableCharacter onCharacterDragEnd={handleCharacterDragEnd} />
+            <CharmCard charm={activeCharm} background={activeBg} textColor={activeTextColor} character={activeCharacter} characterScale={characterScale} characterOffsetX={characterOffsetX} characterOffsetY={characterOffsetY} selectedStickerIds={selectedStickerIds} stickerPositions={stickerPositions} draggableCharacter onCharacterDragEnd={handleCharacterDragEnd} draggableStickers onStickerDragEnd={handleStickerDragEnd} />
 
             <section className="mt-6">
               <div className="mb-3 flex items-center justify-between"><h3 className="text-lg font-black">캐릭터 선택</h3><p className="text-xs font-bold text-neutral-400">페이 · 부기 · 호야</p></div>
@@ -714,8 +754,8 @@ export default function PayboocLuckyCharmMobileWeb() {
               <div className="grid grid-cols-3 gap-2">{stickerOptions.map((sticker) => <button key={sticker.id} onClick={() => toggleSticker(sticker.id)} className={`flex min-h-[74px] items-center justify-center rounded-2xl border-2 bg-white p-2 ${selectedStickerIds.includes(sticker.id) ? "border-[#E6002D] ring-4 ring-[#E6002D]/10" : "border-neutral-200"}`}><Sticker sticker={sticker} small /></button>)}</div>
               {selectedStickerIds.length > 0 && (
                 <div className="mt-4 rounded-2xl bg-neutral-50 p-3">
-                  <div className="mb-2 flex items-center justify-between"><p className="text-sm font-black">선택한 스티커</p><button onClick={() => setSelectedStickerIds([])} className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#E6002D]">휴지통 비우기</button></div>
-                  <div className="flex flex-wrap gap-2">{selectedStickerIds.map((id, index) => { const sticker = stickerOptions.find((item) => item.id === id); if (!sticker) return null; return <button key={`${id}-${index}`} onClick={() => setSelectedStickerIds((prev) => prev.filter((_, i) => i !== index))} className="flex items-center gap-1 rounded-full border border-neutral-200 bg-white px-3 py-2 text-xs font-bold"><Sticker sticker={sticker} small /><span className="text-[#E6002D]">🗑️</span></button>; })}</div>
+                  <div className="mb-2 flex items-center justify-between"><p className="text-sm font-black">선택한 스티커</p><button onClick={() => { setSelectedStickerIds([]); setStickerPositions({}); }} className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#E6002D]">휴지통 비우기</button></div>
+                  <div className="flex flex-wrap gap-2">{selectedStickerIds.map((id, index) => { const sticker = stickerOptions.find((item) => item.id === id); if (!sticker) return null; return <button key={`${id}-${index}`} onClick={() => { setSelectedStickerIds((prev) => prev.filter((_, i) => i !== index)); setStickerPositions((prev) => { const next = { ...prev }; delete next[id]; return next; }); }} className="flex items-center gap-1 rounded-full border border-neutral-200 bg-white px-3 py-2 text-xs font-bold"><Sticker sticker={sticker} small /><span className="text-[#E6002D]">🗑️</span></button>; })}</div>
                 </div>
               )}
             </section>
@@ -727,7 +767,7 @@ export default function PayboocLuckyCharmMobileWeb() {
             <p className="text-sm font-black text-[#E6002D]">READY TO SHARE</p>
             <h2 className="mt-2 text-3xl font-black">이제 스토리에 올리면 끝!</h2>
             <p className="mt-2 text-sm leading-relaxed text-neutral-500">완성된 행운 부적을 저장하고 인스타그램 스토리에 공유해보세요. 스토리에 @bccard_official을 태그하면 응모 확인이 더 쉬워져요.</p>
-            <div className="mt-6"><CharmCard charm={activeCharm} background={activeBg} textColor={activeTextColor} character={activeCharacter} characterScale={characterScale} characterOffsetX={characterOffsetX} characterOffsetY={characterOffsetY} selectedStickerIds={selectedStickerIds} captureRef={charmCardRef} /></div>
+            <div className="mt-6"><CharmCard charm={activeCharm} background={activeBg} textColor={activeTextColor} character={activeCharacter} characterScale={characterScale} characterOffsetX={characterOffsetX} characterOffsetY={characterOffsetY} selectedStickerIds={selectedStickerIds} stickerPositions={stickerPositions} captureRef={charmCardRef} /></div>
             <div className="mt-6 grid gap-3">
               <button onClick={saveCharmImage} className="flex items-center justify-center gap-2 rounded-2xl bg-black px-5 py-4 font-black text-white">부적 이미지 저장하기 <DownloadIcon className="h-5 w-5" /></button>
               <button onClick={() => window.open(INSTAGRAM_URL, "_blank", "noopener,noreferrer")} className="rounded-2xl bg-[#E6002D] px-5 py-4 font-black text-white">@bccard_official 태그하고 공유하기</button>
