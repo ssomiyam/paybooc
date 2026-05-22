@@ -416,7 +416,7 @@ export default function PayboocLuckyCharmMobileWeb() {
     s9: getStickerDefaultPosition("s9", 1),
     s10: getStickerDefaultPosition("s10", 2),
   });
-  const [screen, setScreen] = useState("home");
+  const [screen, setScreen] = useState("intro");
   const [activeFortuneTabId, setActiveFortuneTabId] = useState("total");
   const [userName, setUserName] = useState("");
   const [now, setNow] = useState(() => new Date());
@@ -653,11 +653,59 @@ export default function PayboocLuckyCharmMobileWeb() {
       <div className="mx-auto min-h-screen max-w-[430px] bg-white shadow-2xl">
         <header className="sticky top-0 z-50 border-b border-neutral-100 bg-white/95 px-5 py-4 backdrop-blur">
           <div className="flex items-center justify-between">
-            <button className="text-2xl" onClick={() => (screen === "home" ? undefined : setScreen("home"))}>←</button>
+            <button className="text-2xl" onClick={() => (screen === "intro" ? undefined : screen === "home" ? setScreen("intro") : setScreen("home"))}>←</button>
             <h1 className="text-lg font-black">오늘의 행운 부적 이벤트</h1>
             <span className="text-xs font-black text-[#E6002D]">paybooc</span>
           </div>
         </header>
+
+        {screen === "intro" && (
+          <motion.section initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="px-5 pb-32 pt-10">
+            <section className="rounded-[2.2rem] bg-[#101820] p-6 text-white shadow-xl">
+              <div className="mb-5 inline-flex rounded-full bg-white px-4 py-2 text-xs font-black text-[#E6002D]">
+                오늘의 행운 부적 이벤트
+              </div>
+              <p className="text-sm font-black text-[#FFB3C1]">PAYBOOC LUCKY GOODS EVENT</p>
+              <h2 className="mt-4 text-4xl font-black leading-tight">
+                두근두근<br />오늘의 운세는?
+              </h2>
+              <p className="mt-4 text-sm leading-relaxed text-white/70">
+                이름 또는 별명을 입력하고, 오늘의 운세 점수와 나만의 행운 부적을 받아보세요.
+                완성한 부적을 저장해 스토리에 공유하면 이벤트 참여까지 이어져요.
+              </p>
+
+              <div className="mt-7 rounded-[1.6rem] bg-white p-4 text-[#151515]">
+                <label className="block text-xs font-black text-neutral-400">이름 또는 별명</label>
+                <input
+                  value={userName}
+                  onChange={(event) => setUserName(event.target.value)}
+                  maxLength={10}
+                  placeholder="예: 민송"
+                  className="mt-2 w-full rounded-2xl bg-neutral-50 px-4 py-4 text-lg font-black outline-none placeholder:text-neutral-300"
+                />
+                <button
+                  onClick={() => setScreen("home")}
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#E6002D] px-5 py-4 font-black text-white"
+                >
+                  오늘의 운세 확인하기 <ArrowIcon className="h-5 w-5" />
+                </button>
+              </div>
+            </section>
+
+            <section className="mt-6 grid gap-3">
+              {[
+                ["01", "운세 점수 확인"],
+                ["02", "나만의 행운 부적 꾸미기"],
+                ["03", "스토리 공유하고 이벤트 참여"],
+              ].map(([step, label]) => (
+                <div key={step} className="flex items-center gap-3 rounded-2xl bg-neutral-50 p-4">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-xs font-black text-white">{step}</span>
+                  <span className="font-black">{label}</span>
+                </div>
+              ))}
+            </section>
+          </motion.section>
+        )}
 
         {screen === "home" && (
           <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-5 pb-28 pt-5">
@@ -669,10 +717,6 @@ export default function PayboocLuckyCharmMobileWeb() {
               </div>
               <div className="rounded-[2rem] bg-white/80 p-5 text-center">
                 <p className="font-bold text-[#57A6E8]">{formattedNow}</p>
-                <div className="mx-auto mt-3 max-w-[220px] rounded-2xl bg-white/70 px-3 py-2">
-                  <label className="block text-[10px] font-black text-neutral-400">이름/별명</label>
-                  <input value={userName} onChange={(event) => setUserName(event.target.value)} maxLength={10} placeholder="이름 또는 별명 입력" className="mt-1 w-full bg-transparent text-center text-sm font-black outline-none placeholder:text-neutral-300" />
-                </div>
                 <h2 className="mt-3 text-2xl font-black">{displayName}님의 {activeFortuneTab.label} 운세</h2>
                 <div className="mx-auto mt-5 flex h-24 w-24 items-center justify-center rounded-full bg-[#9FE7DF] text-4xl shadow-[0_0_35px_rgba(255,220,70,0.6)]">{activeFortune.emoji}</div>
                 <p className="mt-4 text-6xl font-black">{activeFortune.score}</p>
@@ -747,6 +791,38 @@ export default function PayboocLuckyCharmMobileWeb() {
             <section className="mt-6">
               <div className="mb-3 flex items-center justify-between"><h3 className="text-lg font-black">스티커 선택</h3><p className="text-xs font-bold text-neutral-400">선택 후 부적 위에서 드래그</p></div>
               <div className="grid grid-cols-3 gap-2">{stickerOptions.map((sticker) => <button key={sticker.id} onClick={() => toggleSticker(sticker.id)} className={`flex min-h-[74px] items-center justify-center rounded-2xl border-2 bg-white p-2 ${selectedStickerIds.includes(sticker.id) ? "border-[#E6002D] ring-4 ring-[#E6002D]/10" : "border-neutral-200"}`}><StickerPreview sticker={sticker} /></button>)}</div>
+              {selectedStickerIds.length > 0 && (
+                <div className="mt-4 rounded-2xl bg-neutral-50 p-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-sm font-black">선택한 스티커</p>
+                    <button
+                      onClick={() => {
+                        setSelectedStickerIds([]);
+                        setStickerPositions({});
+                      }}
+                      className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#E6002D]"
+                    >
+                      휴지통 비우기
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedStickerIds.map((id) => {
+                      const sticker = stickerOptions.find((item) => item.id === id);
+                      if (!sticker) return null;
+                      return (
+                        <button
+                          key={id}
+                          onClick={() => toggleSticker(id)}
+                          className="flex items-center gap-1 rounded-full border border-neutral-200 bg-white px-2 py-2 text-xs font-bold"
+                        >
+                          <StickerPreview sticker={sticker} />
+                          <span className="ml-1 text-[#E6002D]">🗑️</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </section>
           </motion.section>
         )}
@@ -759,7 +835,8 @@ export default function PayboocLuckyCharmMobileWeb() {
             <div className="mt-6">{charmPreview(false)}</div>
             <div className="mt-6 grid gap-3">
               <button onClick={saveCharmImage} className="flex items-center justify-center gap-2 rounded-2xl bg-black px-5 py-4 font-black text-white">부적 이미지 저장하기 <DownloadIcon className="h-5 w-5" /></button>
-              <button onClick={() => window.open(INSTAGRAM_URL, "_blank", "noopener,noreferrer")} className="rounded-2xl bg-[#E6002D] px-5 py-4 font-black text-white">@bccard_official 태그하고 공유하기</button>
+              <button onClick={openInstagramStory} className="rounded-2xl bg-[#E6002D] px-5 py-4 font-black text-white">스토리에 공유하기</button>
+              <button onClick={shareEventLink} className="rounded-2xl bg-[#FFE8EE] px-5 py-4 font-black text-[#E6002D]">친구에게 행운 나누기</button>
               <button onClick={() => setShowEntryForm((prev) => !prev)} className="rounded-2xl border-2 border-neutral-200 px-5 py-4 font-black">태그 완료 후 응모하기</button>
               {saveStatus && <p className="text-center text-xs font-bold leading-relaxed text-neutral-500">{saveStatus}</p>}
               {showEntryForm && (
@@ -770,7 +847,7 @@ export default function PayboocLuckyCharmMobileWeb() {
                   <input type="file" accept="image/*" onChange={(event) => setStoryCaptureName(event.target.files?.[0]?.name || "")} className="mt-2 w-full rounded-2xl bg-white p-3 text-xs font-bold" />
                   {storyCaptureName && <p className="mt-2 text-xs font-bold text-[#E6002D]">업로드 파일: {storyCaptureName}</p>}
                   <label className="mt-4 block text-xs font-black text-neutral-500">인스타그램 아이디</label>
-                  <input value={entryForm.instagramId} onChange={(event) => setEntryForm((prev) => ({ ...prev, instagramId: event.target.value }))} placeholder="예: bccard_official" className="mt-2 w-full rounded-2xl bg-white px-4 py-3 text-sm font-bold outline-none" />
+                  <input value={entryForm.instagramId} onChange={(event) => setEntryForm((prev) => ({ ...prev, instagramId: event.target.value }))} placeholder="예: bamos4study" className="mt-2 w-full rounded-2xl bg-white px-4 py-3 text-sm font-bold outline-none" />
                   <label className="mt-4 block text-xs font-black text-neutral-500">이름</label>
                   <input value={entryForm.name} onChange={(event) => setEntryForm((prev) => ({ ...prev, name: event.target.value }))} placeholder="이름 입력" className="mt-2 w-full rounded-2xl bg-white px-4 py-3 text-sm font-bold outline-none" />
                   <label className="mt-4 block text-xs font-black text-neutral-500">전화번호</label>
@@ -782,13 +859,15 @@ export default function PayboocLuckyCharmMobileWeb() {
           </motion.section>
         )}
 
-        <nav className="fixed bottom-0 left-1/2 z-50 w-full max-w-[430px] -translate-x-1/2 border-t border-neutral-200 bg-white/95 px-5 py-3 backdrop-blur">
-          <div className="grid grid-cols-4 gap-2 text-center text-[11px] font-black">
-            {[["home", "운세"], ["select", "부적"], ["custom", "부꾸"], ["share", "공유"]].map(([id, label]) => (
-              <button key={id} onClick={() => setScreen(id)} className={`rounded-2xl px-2 py-2 ${screen === id ? "bg-black text-white" : "bg-neutral-100 text-neutral-500"}`}>{label}</button>
-            ))}
-          </div>
-        </nav>
+        {screen !== "intro" && (
+          <nav className="fixed bottom-0 left-1/2 z-50 w-full max-w-[430px] -translate-x-1/2 border-t border-neutral-200 bg-white/95 px-5 py-3 backdrop-blur">
+            <div className="grid grid-cols-4 gap-2 text-center text-[11px] font-black">
+              {[["home", "운세"], ["select", "부적"], ["custom", "부꾸"], ["share", "공유"]].map(([id, label]) => (
+                <button key={id} onClick={() => setScreen(id)} className={`rounded-2xl px-2 py-2 ${screen === id ? "bg-black text-white" : "bg-neutral-100 text-neutral-500"}`}>{label}</button>
+              ))}
+            </div>
+          </nav>
+        )}
       </div>
     </main>
   );
