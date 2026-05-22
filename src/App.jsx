@@ -213,12 +213,50 @@ function StickerSvg({ sticker, position, draggable, onPointerDown }) {
           fontSize="10"
           fontWeight={style.weight}
           fill={style.color}
-          style={{ userSelect: "none" }}
+          style={{ userSelect: "none", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}
         >
           {line}
         </text>
       ))}
     </g>
+  );
+}
+
+function StickerPreview({ sticker }) {
+  if (sticker.type === "emoji") {
+    return <span className="text-2xl leading-none">{sticker.text}</span>;
+  }
+
+  const styleMap = {
+    burst: { border: "2px solid #F87171", backgroundColor: "#FEF3C7", color: "#EF4444", borderRadius: 4, transform: "rotate(-4deg)", fontWeight: 900 },
+    heart: { border: "2px solid #111111", backgroundColor: "#FCE7F3", color: "#262626", borderRadius: 999, fontWeight: 700 },
+    pill: { border: "2px solid #F87171", backgroundColor: "#FEFCE8", color: "#EF4444", borderRadius: 999, fontWeight: 900 },
+    cloud: { border: "2px solid #111111", backgroundColor: "#ECFEFF", color: "#262626", borderRadius: 999, fontWeight: 700 },
+    speech: { border: "2px solid #111111", backgroundColor: "#FFFFFF", color: "#262626", borderRadius: 999, fontWeight: 700 },
+    zigzag: { border: "2px solid #111111", backgroundColor: "#FFFFFF", color: "#171717", borderRadius: 4, fontWeight: 900 },
+    vertical: { border: "2px solid #111111", backgroundColor: "#F0FDF4", color: "#171717", borderRadius: 4, fontWeight: 700, writingMode: "vertical-rl" },
+    box: { border: "2px solid #22C55E", backgroundColor: "#FFFFFF", color: "#16A34A", borderRadius: 4, fontWeight: 700 },
+  };
+
+  const previewStyle = styleMap[sticker.type] || styleMap.box;
+  return (
+    <span
+      style={{
+        ...previewStyle,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        maxWidth: "100%",
+        minHeight: 28,
+        padding: "5px 9px",
+        fontSize: 10,
+        lineHeight: 1.15,
+        textAlign: "center",
+        whiteSpace: sticker.text.length > 9 ? "normal" : "nowrap",
+      }}
+    >
+      {sticker.type === "pill" ? `🙏 ${sticker.text}` : sticker.text}
+    </span>
   );
 }
 
@@ -261,7 +299,7 @@ function CharmSvg({ charm, background, textColor, character, characterDataUrl, c
 
       <g onPointerDown={editable ? (event) => onDragStart(event, "character", character.id) : undefined} style={{ cursor: editable ? "grab" : "default", touchAction: "none" }}>
         {characterDataUrl ? (
-          <image href={characterDataUrl} x={charX} y={charY} width={charSize} height={charSize} preserveAspectRatio="xMidYMid meet" filter="url(#characterShadow)" />
+          <image href={characterDataUrl} xlinkHref={characterDataUrl} x={charX} y={charY} width={charSize} height={charSize} preserveAspectRatio="xMidYMid meet" filter="url(#characterShadow)" />
         ) : (
           <text x={characterPosition.x} y={characterPosition.y} textAnchor="middle" dominantBaseline="central" fontSize={64 * characterScale}>{character.fallback}</text>
         )}
@@ -281,10 +319,10 @@ function CharmSvg({ charm, background, textColor, character, characterDataUrl, c
       })}
 
       <rect x="21" y="395" width="268" height="105" rx="17" fill="rgba(255,255,255,0.65)" stroke={background.border} strokeWidth="2" />
-      <text x="155" y="435" textAnchor="middle" dominantBaseline="central" fontSize="38" fontWeight="900" fill={textColor.value}>{charm.score}</text>
-      <text x="155" y="465" textAnchor="middle" dominantBaseline="central" fontSize="12" fontWeight="700" fill="#404040">{charm.sub}</text>
-      <rect x="36" y="478" width="238" height="26" rx="13" fill="rgba(255,255,255,0.7)" />
-      <text x="155" y="491" textAnchor="middle" dominantBaseline="central" fontSize="11" fontWeight="800" fill="#404040">{charm.advice}</text>
+      <text x="155" y="427" textAnchor="middle" dominantBaseline="central" fontSize="36" fontWeight="900" fill={textColor.value} style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>{charm.score}</text>
+      <text x="155" y="458" textAnchor="middle" dominantBaseline="central" fontSize="11" fontWeight="700" fill="#404040" style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>{charm.sub}</text>
+      <rect x="36" y="474" width="238" height="26" rx="13" fill="rgba(255,255,255,0.7)" />
+      <text x="155" y="487" textAnchor="middle" dominantBaseline="central" fontSize="10" fontWeight="800" fill="#404040" style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>{charm.advice}</text>
 
       <rect x="28" y="514" width="254" height="22" rx="11" fill="rgba(255,255,255,0.5)" />
       <text x="155" y="527" textAnchor="middle" dominantBaseline="central" fontSize="10" fontWeight="800" fill="#737373">BC카드 · 페이북 · {OFFICIAL_TAG}</text>
@@ -446,23 +484,45 @@ export default function PayboocLuckyCharmMobileWeb() {
 
     try {
       setSaveStatus("이미지를 저장하는 중이에요...");
+
       const dataUrl = svgToDataUrl(svg);
       const image = new Image();
       image.decoding = "async";
-      image.onload = () => {
+
+      const loadImage = (src) =>
+        new Promise((resolve) => {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.onload = () => resolve(img);
+          img.onerror = () => resolve(null);
+          img.src = src;
+        });
+
+      image.onload = async () => {
         const scale = 3;
         const canvas = document.createElement("canvas");
         canvas.width = CARD_W * scale;
         canvas.height = CARD_H * scale;
         const context = canvas.getContext("2d");
-        context.fillStyle = "rgba(255,255,255,0)";
-        context.fillRect(0, 0, canvas.width, canvas.height);
         context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+        // 일부 모바일 브라우저는 SVG 안의 <image>를 PNG 변환할 때 누락시키는 경우가 있어
+        // 캐릭터 이미지만 캔버스 위에 한 번 더 직접 그려서 저장본에서 사라지지 않게 처리합니다.
+        const characterSrc = characterDataUrls[activeCharacter.id] || activeCharacter.image;
+        const characterImage = await loadImage(characterSrc);
+        if (characterImage) {
+          const charSize = CHARACTER_BASE_SIZE * characterScale * scale;
+          const charX = (characterPosition.x * scale) - charSize / 2;
+          const charY = (characterPosition.y * scale) - charSize / 2;
+          context.drawImage(characterImage, charX, charY, charSize, charSize);
+        }
+
         canvas.toBlob((blob) => {
           if (!blob) {
             setSaveStatus("이미지 생성에 실패했어요. 다시 시도해주세요.");
             return;
           }
+
           const fileName = `paybooc-lucky-charm-${activeCharm.id}.png`;
           const file = new File([blob], fileName, { type: "image/png" });
 
@@ -485,6 +545,7 @@ export default function PayboocLuckyCharmMobileWeb() {
           setSaveStatus("부적 이미지가 저장/다운로드됐어요.");
         }, "image/png");
       };
+
       image.onerror = () => setSaveStatus("이미지를 불러오지 못했어요. 캐릭터 이미지 경로를 확인해주세요.");
       image.src = dataUrl;
     } catch (error) {
@@ -609,7 +670,7 @@ export default function PayboocLuckyCharmMobileWeb() {
 
             <section className="mt-6">
               <div className="mb-3 flex items-center justify-between"><h3 className="text-lg font-black">스티커 선택</h3><p className="text-xs font-bold text-neutral-400">선택 후 부적 위에서 드래그</p></div>
-              <div className="grid grid-cols-3 gap-2">{stickerOptions.map((sticker) => <button key={sticker.id} onClick={() => toggleSticker(sticker.id)} className={`flex min-h-[74px] items-center justify-center rounded-2xl border-2 bg-white p-2 ${selectedStickerIds.includes(sticker.id) ? "border-[#E6002D] ring-4 ring-[#E6002D]/10" : "border-neutral-200"}`}><span className="text-xs font-black">{sticker.text}</span></button>)}</div>
+              <div className="grid grid-cols-3 gap-2">{stickerOptions.map((sticker) => <button key={sticker.id} onClick={() => toggleSticker(sticker.id)} className={`flex min-h-[74px] items-center justify-center rounded-2xl border-2 bg-white p-2 ${selectedStickerIds.includes(sticker.id) ? "border-[#E6002D] ring-4 ring-[#E6002D]/10" : "border-neutral-200"}`}><StickerPreview sticker={sticker} /></button>)}</div>
             </section>
           </motion.section>
         )}
