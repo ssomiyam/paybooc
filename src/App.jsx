@@ -289,7 +289,7 @@ function CharmSvg({ charm, background, textColor, character, characterDataUrl, c
       <rect x="100" y="22" width="110" height="36" rx="18" fill="rgba(255,255,255,0.62)" stroke={background.border} strokeWidth="2" />
       <text x="155" y="41" textAnchor="middle" dominantBaseline="central" fontSize="12" fontWeight="900" letterSpacing="2" fill={textColor.value}>오늘의 {charm.label}</text>
       <text x="155" y="88" textAnchor="middle" fontSize="10" fontWeight="900" letterSpacing="2" fill="#737373">PAYBOOC LUCKY CHARM</text>
-      <text x="155" y="126" textAnchor="middle" fontSize="24" fontWeight="900" letterSpacing="-1" fill={textColor.value}>{charm.title}</text>
+      <text x="155" y="128" textAnchor="middle" fontSize="27" fontWeight="900" letterSpacing="-1" fill={textColor.value} style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>{charm.title}</text>
 
       <rect x="21" y="155" width="268" height="225" rx="24" fill="rgba(255,255,255,0.35)" />
       <text x="42" y="190" fontSize="13" fill="#151515">✦</text>
@@ -318,14 +318,14 @@ function CharmSvg({ charm, background, textColor, character, characterDataUrl, c
         );
       })}
 
-      <rect x="21" y="395" width="268" height="105" rx="17" fill="rgba(255,255,255,0.65)" stroke={background.border} strokeWidth="2" />
-      <text x="155" y="427" textAnchor="middle" dominantBaseline="central" fontSize="36" fontWeight="900" fill={textColor.value} style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>{charm.score}</text>
-      <text x="155" y="458" textAnchor="middle" dominantBaseline="central" fontSize="11" fontWeight="700" fill="#404040" style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>{charm.sub}</text>
-      <rect x="36" y="474" width="238" height="26" rx="13" fill="rgba(255,255,255,0.7)" />
-      <text x="155" y="487" textAnchor="middle" dominantBaseline="central" fontSize="10" fontWeight="800" fill="#404040" style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>{charm.advice}</text>
+      <rect x="21" y="392" width="268" height="98" rx="17" fill="rgba(255,255,255,0.68)" stroke={background.border} strokeWidth="2" />
+      <text x="155" y="420" textAnchor="middle" dominantBaseline="central" fontSize="37" fontWeight="900" fill={textColor.value} style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>{charm.score}</text>
+      <text x="155" y="446" textAnchor="middle" dominantBaseline="central" fontSize="10.5" fontWeight="700" fill="#404040" style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>{charm.sub}</text>
+      <rect x="40" y="458" width="230" height="24" rx="12" fill="rgba(255,255,255,0.76)" />
+      <text x="155" y="470" textAnchor="middle" dominantBaseline="central" fontSize="9.5" fontWeight="800" fill="#404040" style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>{charm.advice}</text>
 
-      <rect x="28" y="514" width="254" height="22" rx="11" fill="rgba(255,255,255,0.5)" />
-      <text x="155" y="527" textAnchor="middle" dominantBaseline="central" fontSize="10" fontWeight="800" fill="#737373">BC카드 · 페이북 · {OFFICIAL_TAG}</text>
+      <rect x="34" y="500" width="242" height="20" rx="10" fill="rgba(255,255,255,0.54)" />
+      <text x="155" y="510" textAnchor="middle" dominantBaseline="central" fontSize="9.5" fontWeight="800" fill="#737373" style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>BC카드 · 페이북 · {OFFICIAL_TAG}</text>
     </svg>
   );
 }
@@ -511,10 +511,23 @@ export default function PayboocLuckyCharmMobileWeb() {
         const characterSrc = characterDataUrls[activeCharacter.id] || activeCharacter.image;
         const characterImage = await loadImage(characterSrc);
         if (characterImage) {
-          const charSize = CHARACTER_BASE_SIZE * characterScale * scale;
-          const charX = (characterPosition.x * scale) - charSize / 2;
-          const charY = (characterPosition.y * scale) - charSize / 2;
-          context.drawImage(characterImage, charX, charY, charSize, charSize);
+          const boxSize = CHARACTER_BASE_SIZE * characterScale * scale;
+          const boxX = (characterPosition.x * scale) - boxSize / 2;
+          const boxY = (characterPosition.y * scale) - boxSize / 2;
+
+          const sourceRatio = characterImage.naturalWidth / characterImage.naturalHeight;
+          let drawWidth = boxSize;
+          let drawHeight = boxSize;
+
+          if (sourceRatio > 1) {
+            drawHeight = boxSize / sourceRatio;
+          } else {
+            drawWidth = boxSize * sourceRatio;
+          }
+
+          const drawX = boxX + (boxSize - drawWidth) / 2;
+          const drawY = boxY + (boxSize - drawHeight) / 2;
+          context.drawImage(characterImage, drawX, drawY, drawWidth, drawHeight);
         }
 
         canvas.toBlob((blob) => {
