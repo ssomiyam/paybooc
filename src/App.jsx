@@ -222,6 +222,62 @@ function StickerSvg({ sticker, position, draggable, onPointerDown }) {
   );
 }
 
+function escapeXml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;");
+}
+
+function getStickerSvgMeta(sticker) {
+  const isEmoji = sticker.type === "emoji";
+  const lines = wrapText(sticker.text, 12);
+  const textWidth = Math.max(...lines.map((line) => line.length)) * 8 + 20;
+  const width = isEmoji ? 30 : clamp(textWidth, 44, 132);
+  const height = isEmoji ? 30 : sticker.type === "vertical" ? 62 : 28 + (lines.length - 1) * 12;
+  const styles = {
+    burst: { fill: "#FEF3C7", stroke: "#F87171", color: "#EF4444", radius: 2, rotate: -5, weight: 900 },
+    heart: { fill: "#FCE7F3", stroke: "#111111", color: "#262626", radius: 20, rotate: 0, weight: 700 },
+    pill: { fill: "#FEFCE8", stroke: "#F87171", color: "#EF4444", radius: 20, rotate: 0, weight: 900 },
+    cloud: { fill: "#ECFEFF", stroke: "#111111", color: "#262626", radius: 20, rotate: 0, weight: 700 },
+    speech: { fill: "#FFFFFF", stroke: "#111111", color: "#262626", radius: 20, rotate: 0, weight: 700 },
+    zigzag: { fill: "#FFFFFF", stroke: "#111111", color: "#171717", radius: 2, rotate: 0, weight: 900 },
+    box: { fill: "#FFFFFF", stroke: "#22C55E", color: "#16A34A", radius: 2, rotate: 0, weight: 700 },
+    vertical: { fill: "#F0FDF4", stroke: "#111111", color: "#171717", radius: 4, rotate: 0, weight: 700 },
+  };
+  return { isEmoji, lines, width, height, style: styles[sticker.type] || styles.box };
+}
+
+function stickerSvgMarkup(sticker, position) {
+  const { x, y } = position;
+  const { isEmoji, lines, width, height, style } = getStickerSvgMeta(sticker);
+
+  if (isEmoji) {
+    return `<g transform="translate(${x} ${y})"><text x="0" y="0" text-anchor="middle" dominant-baseline="central" font-size="22">${escapeXml(sticker.text)}</text></g>`;
+  }
+
+  const displayLines = sticker.type === "pill" ? wrapText(`🙏 ${sticker.text}`, 11) : lines;
+  const textNodes = displayLines
+    .map((line, lineIndex) => {
+      const textY = (lineIndex - (displayLines.length - 1) / 2) * 12 + 1;
+      return `<text x="0" y="${textY}" text-anchor="middle" dominant-baseline="central" font-size="10" font-weight="${style.weight}" fill="${style.color}" style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${escapeXml(line)}</text>`;
+    })
+    .join("");
+
+  return `<g transform="translate(${x} ${y}) rotate(${style.rotate})"><rect x="${-width / 2}" y="${-height / 2}" width="${width}" height="${height}" rx="${style.radius}" ry="${style.radius}" fill="${style.fill}" stroke="${style.stroke}" stroke-width="2" />${textNodes}</g>`;
+}
+
+function stickersOverlaySvgToDataUrl(selectedStickerIds, stickerPositions) {
+  const selectedStickers = selectedStickerIds.map((id) => stickerOptions.find((item) => item.id === id)).filter(Boolean);
+  const stickersMarkup = selectedStickers
+    .map((sticker, index) => stickerSvgMarkup(sticker, stickerPositions[sticker.id] || getStickerDefaultPosition(sticker.id, index)))
+    .join("");
+  const svgText = `<svg xmlns="http://www.w3.org/2000/svg" width="${CARD_W}" height="${CARD_H}" viewBox="0 0 ${CARD_W} ${CARD_H}">${stickersMarkup}</svg>`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgText)}`;
+}
+
 function StickerPreview({ sticker }) {
   if (sticker.type === "emoji") {
     return <span className="text-2xl leading-none">{sticker.text}</span>;
@@ -299,7 +355,7 @@ function CharmSvg({ charm, background, textColor, character, characterDataUrl, c
 
       <g onPointerDown={editable ? (event) => onDragStart(event, "character", character.id) : undefined} style={{ cursor: editable ? "grab" : "default", touchAction: "none" }}>
         {characterDataUrl ? (
-          <image href={characterDataUrl} xlinkHref={characterDataUrl} x={charX} y={charY} width={charSize} height={charSize} preserveAspectRatio="xMidYMid meet" filter="url(#characterShadow)" />
+          <image href={characterDataUrl} xlinkHref={characterDataUrl} x={charX} y={charY} width={charSize} height={charSize} preserveAspectRatio="xMidYMid meet" />
         ) : (
           <text x={characterPosition.x} y={characterPosition.y} textAnchor="middle" dominantBaseline="central" fontSize={64 * characterScale}>{character.fallback}</text>
         )}
@@ -530,6 +586,13 @@ export default function PayboocLuckyCharmMobileWeb() {
           context.drawImage(characterImage, drawX, drawY, drawWidth, drawHeight);
         }
 
+        // 위에서 캐릭터를 한 번 더 그리면 캐릭터가 스티커 위로 올라올 수 있어서,
+        // 저장 직전에 스티커 레이어만 다시 올려 캐릭터가 항상 스티커 아래에 있게 합니다.
+        const stickerOverlay = await loadImage(stickersOverlaySvgToDataUrl(selectedStickerIds, stickerPositions));
+        if (stickerOverlay) {
+          context.drawImage(stickerOverlay, 0, 0, canvas.width, canvas.height);
+        }
+
         canvas.toBlob((blob) => {
           if (!blob) {
             setSaveStatus("이미지 생성에 실패했어요. 다시 시도해주세요.");
@@ -707,7 +770,7 @@ export default function PayboocLuckyCharmMobileWeb() {
                   <input type="file" accept="image/*" onChange={(event) => setStoryCaptureName(event.target.files?.[0]?.name || "")} className="mt-2 w-full rounded-2xl bg-white p-3 text-xs font-bold" />
                   {storyCaptureName && <p className="mt-2 text-xs font-bold text-[#E6002D]">업로드 파일: {storyCaptureName}</p>}
                   <label className="mt-4 block text-xs font-black text-neutral-500">인스타그램 아이디</label>
-                  <input value={entryForm.instagramId} onChange={(event) => setEntryForm((prev) => ({ ...prev, instagramId: event.target.value }))} placeholder="예: bamos4study" className="mt-2 w-full rounded-2xl bg-white px-4 py-3 text-sm font-bold outline-none" />
+                  <input value={entryForm.instagramId} onChange={(event) => setEntryForm((prev) => ({ ...prev, instagramId: event.target.value }))} placeholder="예: bccard_official" className="mt-2 w-full rounded-2xl bg-white px-4 py-3 text-sm font-bold outline-none" />
                   <label className="mt-4 block text-xs font-black text-neutral-500">이름</label>
                   <input value={entryForm.name} onChange={(event) => setEntryForm((prev) => ({ ...prev, name: event.target.value }))} placeholder="이름 입력" className="mt-2 w-full rounded-2xl bg-white px-4 py-3 text-sm font-bold outline-none" />
                   <label className="mt-4 block text-xs font-black text-neutral-500">전화번호</label>
