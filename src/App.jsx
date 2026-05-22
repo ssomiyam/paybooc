@@ -562,8 +562,6 @@ export default function PayboocLuckyCharmMobileWeb() {
         const context = canvas.getContext("2d");
         context.drawImage(image, 0, 0, canvas.width, canvas.height);
 
-        // 일부 모바일 브라우저는 SVG 안의 <image>를 PNG 변환할 때 누락시키는 경우가 있어
-        // 캐릭터 이미지만 캔버스 위에 한 번 더 직접 그려서 저장본에서 사라지지 않게 처리합니다.
         const characterSrc = characterDataUrls[activeCharacter.id] || activeCharacter.image;
         const characterImage = await loadImage(characterSrc);
         if (characterImage) {
@@ -586,8 +584,6 @@ export default function PayboocLuckyCharmMobileWeb() {
           context.drawImage(characterImage, drawX, drawY, drawWidth, drawHeight);
         }
 
-        // 위에서 캐릭터를 한 번 더 그리면 캐릭터가 스티커 위로 올라올 수 있어서,
-        // 저장 직전에 스티커 레이어만 다시 올려 캐릭터가 항상 스티커 아래에 있게 합니다.
         const stickerOverlay = await loadImage(stickersOverlaySvgToDataUrl(selectedStickerIds, stickerPositions));
         if (stickerOverlay) {
           context.drawImage(stickerOverlay, 0, 0, canvas.width, canvas.height);
@@ -618,7 +614,7 @@ export default function PayboocLuckyCharmMobileWeb() {
           link.click();
           link.remove();
           URL.revokeObjectURL(url);
-          setSaveStatus("부적 이미지가 저장/다운로드됐어요.");
+          setSaveStatus("부적 이미지가 저장/다운로드됐어요. 인스타그램 스토리에 올려 이벤트에 참여해보세요.");
         }, "image/png");
       };
 
@@ -627,6 +623,39 @@ export default function PayboocLuckyCharmMobileWeb() {
     } catch (error) {
       console.error(error);
       setSaveStatus("이미지 저장 중 문제가 생겼어요. 다시 시도해주세요.");
+    }
+  };
+
+  const openInstagramStory = () => {
+    setSaveStatus("부적 이미지를 저장한 뒤 인스타그램 스토리에 업로드하고 @bccard_official을 태그해주세요.");
+    window.open(INSTAGRAM_URL, "_blank", "noopener,noreferrer");
+  };
+
+  const shareEventLink = async () => {
+    const eventUrl = window.location.href;
+    const shareText = `${displayName}님의 행운 부적 이벤트 같이 해보자!`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "오늘의 행운 부적 이벤트",
+          text: shareText,
+          url: eventUrl,
+        });
+        setSaveStatus("친구에게 행운 부적 이벤트 링크를 공유했어요.");
+        return;
+      }
+
+      await navigator.clipboard.writeText(eventUrl);
+      setSaveStatus("부적 이벤트 페이지 링크가 복사됐어요. 친구에게 붙여넣어 공유해보세요.");
+    } catch (error) {
+      console.error(error);
+      try {
+        await navigator.clipboard.writeText(eventUrl);
+        setSaveStatus("부적 이벤트 페이지 링크가 복사됐어요. 친구에게 붙여넣어 공유해보세요.");
+      } catch {
+        setSaveStatus("링크 복사에 실패했어요. 주소창의 링크를 직접 복사해주세요.");
+      }
     }
   };
 
@@ -680,7 +709,7 @@ export default function PayboocLuckyCharmMobileWeb() {
                   value={userName}
                   onChange={(event) => setUserName(event.target.value)}
                   maxLength={10}
-                  placeholder="예: 민송"
+                  placeholder="예: 페이"
                   className="mt-2 w-full rounded-2xl bg-neutral-50 px-4 py-4 text-lg font-black outline-none placeholder:text-neutral-300"
                 />
                 <button
@@ -756,7 +785,19 @@ export default function PayboocLuckyCharmMobileWeb() {
           <motion.section initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="px-5 pb-32 pt-5">
             <div className="mb-5 flex items-end justify-between">
               <div><p className="text-sm font-black text-[#E6002D]">CHARM PREVIEW</p><h2 className="mt-1 text-2xl font-black">부적 꾸미기</h2></div>
-              <button onClick={() => setScreen("share")} className="rounded-full bg-black px-4 py-2 text-xs font-black text-white">완료</button>
+              <button
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  dragRef.current = null;
+                  setScreen("share");
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="rounded-full bg-black px-4 py-2 text-xs font-black text-white"
+              >
+                완료
+              </button>
             </div>
 
             {charmPreview(true)}
@@ -847,7 +888,7 @@ export default function PayboocLuckyCharmMobileWeb() {
                   <input type="file" accept="image/*" onChange={(event) => setStoryCaptureName(event.target.files?.[0]?.name || "")} className="mt-2 w-full rounded-2xl bg-white p-3 text-xs font-bold" />
                   {storyCaptureName && <p className="mt-2 text-xs font-bold text-[#E6002D]">업로드 파일: {storyCaptureName}</p>}
                   <label className="mt-4 block text-xs font-black text-neutral-500">인스타그램 아이디</label>
-                  <input value={entryForm.instagramId} onChange={(event) => setEntryForm((prev) => ({ ...prev, instagramId: event.target.value }))} placeholder="예: bamos4study" className="mt-2 w-full rounded-2xl bg-white px-4 py-3 text-sm font-bold outline-none" />
+                  <input value={entryForm.instagramId} onChange={(event) => setEntryForm((prev) => ({ ...prev, instagramId: event.target.value }))} placeholder="예: bccard_official" className="mt-2 w-full rounded-2xl bg-white px-4 py-3 text-sm font-bold outline-none" />
                   <label className="mt-4 block text-xs font-black text-neutral-500">이름</label>
                   <input value={entryForm.name} onChange={(event) => setEntryForm((prev) => ({ ...prev, name: event.target.value }))} placeholder="이름 입력" className="mt-2 w-full rounded-2xl bg-white px-4 py-3 text-sm font-bold outline-none" />
                   <label className="mt-4 block text-xs font-black text-neutral-500">전화번호</label>
