@@ -286,12 +286,10 @@ function CharmSvg({ charm, background, textColor, character, characterDataUrl, c
       <circle cx="5" cy="145" r="88" fill="url(#glow)" />
       <circle cx="310" cy="435" r="95" fill="url(#glow)" />
 
-      <rect x="48" y="20" width="214" height="26" rx="13" fill="rgba(255,255,255,0.72)" stroke={background.border} strokeWidth="1.6" />
-      <text x="155" y="34" textAnchor="middle" dominantBaseline="central" fontSize="12" fontWeight="900" letterSpacing="0.6" fill={textColor.value} style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>오늘의 행운 부적 이벤트</text>
-      <rect x="102" y="56" width="106" height="30" rx="15" fill="rgba(255,255,255,0.58)" stroke={background.border} strokeWidth="1.8" />
-      <text x="155" y="71" textAnchor="middle" dominantBaseline="central" fontSize="11" fontWeight="900" letterSpacing="1.4" fill={textColor.value} style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>오늘의 {charm.label}</text>
-      <text x="155" y="103" textAnchor="middle" fontSize="9.5" fontWeight="900" letterSpacing="1.8" fill="#737373" style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>PAYBOOC LUCKY CHARM</text>
-      <text x="155" y="132" textAnchor="middle" fontSize="27" fontWeight="900" letterSpacing="-1" fill={textColor.value} style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>{charm.title}</text>
+      <rect x="100" y="22" width="110" height="36" rx="18" fill="rgba(255,255,255,0.62)" stroke={background.border} strokeWidth="2" />
+      <text x="155" y="41" textAnchor="middle" dominantBaseline="central" fontSize="12" fontWeight="900" letterSpacing="2" fill={textColor.value} style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>오늘의 {charm.label}</text>
+      <text x="155" y="88" textAnchor="middle" fontSize="10" fontWeight="900" letterSpacing="2" fill="#737373" style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>PAYBOOC LUCKY CHARM</text>
+      <text x="155" y="128" textAnchor="middle" fontSize="27" fontWeight="900" letterSpacing="-1" fill={textColor.value} style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>{charm.title}</text>
 
       <rect x="21" y="155" width="268" height="225" rx="24" fill="rgba(255,255,255,0.35)" />
       <text x="42" y="190" fontSize="13" fill="#151515">✦</text>
@@ -593,7 +591,7 @@ export default function PayboocLuckyCharmMobileWeb() {
         <header className="sticky top-0 z-50 border-b border-neutral-100 bg-white/95 px-5 py-4 backdrop-blur">
           <div className="flex items-center justify-between">
             <button className="text-2xl" onClick={() => (screen === "home" ? undefined : setScreen("home"))}>←</button>
-            <h1 className="text-lg font-black">오늘의 행운 부적</h1>
+            <h1 className="text-lg font-black">오늘의 행운 부적 이벤트</h1>
             <span className="text-xs font-black text-[#E6002D]">paybooc</span>
           </div>
         </header>
